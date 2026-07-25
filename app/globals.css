@@ -1,0 +1,80 @@
+@import "tailwindcss";
+
+@theme inline {
+  /* Brand palette — the single source of truth for every color used across
+     the site. Extracted from the original Truzon Homes design. */
+  --color-navy-950: #0f1c3a;
+  --color-navy-900: #12172b;
+  --color-navy-800: #16264d;
+  --color-navy-700: #1c2438;
+  --color-navy-600: #2a3452;
+
+  --color-gold-600: #b8891f;
+  --color-gold-500: #c2941f;
+  --color-gold-400: #d4a537;
+  --color-gold-300: #e8c877;
+  --color-gold-200: #f2c869;
+
+  --color-surface: #ffffff;
+  --color-surface-muted: #eef1f8;
+  --color-surface-subtle: #f6f7fb;
+
+  --color-border: #e4e7ee;
+  --color-divider: #eef0f5;
+
+  --color-text-body: #647087;
+  --color-text-muted: #8a93a6;
+  --color-text-faint: #9aa4b6;
+  --color-text-strong: #5b6472;
+  --color-text-quote: #3f4a5e;
+
+  --color-success: #5f9c3a;
+  --color-error: #c0392b;
+  --color-whatsapp: #25d366;
+
+  --font-heading: var(--font-playfair);
+  --font-body: var(--font-work-sans);
+
+  --animate-fade-in: fade-in 0.7s ease both;
+  --animate-bounce-down: bounce-down 1.8s ease-in-out infinite;
+  --animate-hero-shimmer: hero-shimmer 1.6s linear infinite;
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes bounce-down {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(8px);
+  }
+}
+
+@keyframes hero-shimmer {
+  0% {
+    background-position: -400px 0;
+  }
+  100% {
+    background-position: 400px 0;
+  }
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background: var(--color-surface);
+  color: var(--color-navy-900);
+}
