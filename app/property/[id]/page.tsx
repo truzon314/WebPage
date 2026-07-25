@@ -4,13 +4,23 @@ import Image from "next/image";
 import { Container } from "@/components/ui/Container";
 import { Button } from "@/components/ui/Button";
 import { PageHero } from "@/components/sections/PageHero";
+import { JsonLd } from "@/components/seo/JsonLd";
 import { getProperty } from "@/lib/cms";
 import { toProperty } from "@/lib/cms-mappers";
+import { buildMetadata, propertyJsonLd } from "@/lib/seo";
+
+const SITE_URL = "https://www.truzonhomes.com";
 
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
   const { id } = await params;
   const property = await getProperty(id).catch(() => null);
-  return { title: property ? property.name : "Property Not Found" };
+  if (!property) return { title: "Property Not Found" };
+  return buildMetadata({
+    seo: property.seo,
+    path: `/property/${id}`,
+    fallbackTitle: property.name,
+    fallbackDescription: property.location_text || "",
+  });
 }
 
 export default async function PropertyDetailPage({ params }: { params: Promise<{ id: string }> }) {
@@ -21,6 +31,7 @@ export default async function PropertyDetailPage({ params }: { params: Promise<{
 
   return (
     <>
+      <JsonLd data={cmsProperty.seo?.schema_jsonld || propertyJsonLd(cmsProperty, SITE_URL)} />
       <PageHero
         title={property.name}
         subtitle={property.location}

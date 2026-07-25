@@ -12,13 +12,20 @@ import { PropertySearchProvider } from "@/lib/context/PropertySearchContext";
 import { getPage, getSettings, listBlogPosts, listProperties } from "@/lib/cms";
 import { toBlogPost, toProperty, toTelHref } from "@/lib/cms-mappers";
 import { CONTACT_INFO } from "@/lib/constants/navigation";
+import { buildMetadata } from "@/lib/seo";
 import type { FaqItem } from "@/types";
 
-export const metadata: Metadata = {
-  title: "Home",
-  description:
-    "Discover architectural masterpieces and premium investment opportunities with Truzon Homes across Hyderabad and Bangalore.",
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const [homePage, settings] = await Promise.all([getPage("home").catch(() => null), getSettings().catch(() => null)]);
+  return buildMetadata({
+    seo: homePage?.seo,
+    settings,
+    path: "/",
+    fallbackTitle: "Home",
+    fallbackDescription:
+      "Discover architectural masterpieces and premium investment opportunities with Truzon Homes across Hyderabad and Bangalore.",
+  });
+}
 
 const FALLBACK_CTA = {
   heading: "Ready to find your dream home?",

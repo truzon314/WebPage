@@ -5,13 +5,20 @@ import { AboutValues } from "@/components/sections/AboutValues";
 import { Stats } from "@/components/sections/Stats";
 import { Certifications } from "@/components/sections/Certifications";
 import { CTA } from "@/components/sections/CTA";
-import { getPage } from "@/lib/cms";
+import { getPage, getSettings } from "@/lib/cms";
+import { buildMetadata } from "@/lib/seo";
 
-export const metadata: Metadata = {
-  title: "About Us",
-  description:
-    "15+ years of building legacies across Hyderabad and Bangalore — one architecturally considered home at a time.",
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const [aboutPage, settings] = await Promise.all([getPage("about").catch(() => null), getSettings().catch(() => null)]);
+  return buildMetadata({
+    seo: aboutPage?.seo,
+    settings,
+    path: "/about",
+    fallbackTitle: "About Us",
+    fallbackDescription:
+      "15+ years of building legacies across Hyderabad and Bangalore — one architecturally considered home at a time.",
+  });
+}
 
 const FALLBACK_CTA = {
   heading: "Want to see our work up close?",

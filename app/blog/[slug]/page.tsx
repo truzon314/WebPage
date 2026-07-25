@@ -5,13 +5,23 @@ import { Clock } from "lucide-react";
 import { Container } from "@/components/ui/Container";
 import { Button } from "@/components/ui/Button";
 import { PageHero } from "@/components/sections/PageHero";
+import { JsonLd } from "@/components/seo/JsonLd";
 import { getBlogPost } from "@/lib/cms";
 import { toBlogPost } from "@/lib/cms-mappers";
+import { articleJsonLd, buildMetadata } from "@/lib/seo";
+
+const SITE_URL = "https://www.truzonhomes.com";
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
   const { slug } = await params;
   const post = await getBlogPost(slug).catch(() => null);
-  return { title: post ? post.title : "Article Not Found" };
+  if (!post) return { title: "Article Not Found" };
+  return buildMetadata({
+    seo: post.seo,
+    path: `/blog/${slug}`,
+    fallbackTitle: post.title,
+    fallbackDescription: post.excerpt || "",
+  });
 }
 
 export default async function BlogPostPage({ params }: { params: Promise<{ slug: string }> }) {
@@ -22,6 +32,7 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
 
   return (
     <>
+      <JsonLd data={cmsPost.seo?.schema_jsonld || articleJsonLd(cmsPost, SITE_URL)} />
       <PageHero
         title={post.title}
         crumbs={[{ label: "Home", href: "/" }, { label: "Blog", href: "/blog" }, { label: post.title }]}

@@ -2,14 +2,24 @@ import type { Metadata } from "next";
 import { PageHero } from "@/components/sections/PageHero";
 import { ProjectsGrid } from "@/components/sections/ProjectsGrid";
 import { CTA } from "@/components/sections/CTA";
-import { getPage, listProperties } from "@/lib/cms";
+import { getPage, getSettings, listProperties } from "@/lib/cms";
 import { toProperty } from "@/lib/cms-mappers";
+import { buildMetadata } from "@/lib/seo";
 
-export const metadata: Metadata = {
-  title: "Projects",
-  description:
-    "Villas, apartments, plots and gated communities across Hyderabad and Bangalore — every one DTCP-approved and RERA-registered.",
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const [projectsPage, settings] = await Promise.all([
+    getPage("projects").catch(() => null),
+    getSettings().catch(() => null),
+  ]);
+  return buildMetadata({
+    seo: projectsPage?.seo,
+    settings,
+    path: "/projects",
+    fallbackTitle: "Projects",
+    fallbackDescription:
+      "Villas, apartments, plots and gated communities across Hyderabad and Bangalore — every one DTCP-approved and RERA-registered.",
+  });
+}
 
 const FALLBACK_HERO = {
   heading: "Our Projects",

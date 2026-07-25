@@ -6,12 +6,22 @@ import { ContactInfoCards } from "@/components/sections/ContactInfoCards";
 import { ContactForm } from "@/components/sections/ContactForm";
 import { Container } from "@/components/ui/Container";
 import { getPage, getSettings } from "@/lib/cms";
+import { buildMetadata } from "@/lib/seo";
 
-export const metadata: Metadata = {
-  title: "Contact",
-  description:
-    "Book a site visit, request a callback, or ask us anything — our consultants respond within one business day.",
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const [contactPage, settings] = await Promise.all([
+    getPage("contact").catch(() => null),
+    getSettings().catch(() => null),
+  ]);
+  return buildMetadata({
+    seo: contactPage?.seo,
+    settings,
+    path: "/contact",
+    fallbackTitle: "Contact",
+    fallbackDescription:
+      "Book a site visit, request a callback, or ask us anything — our consultants respond within one business day.",
+  });
+}
 
 export default async function ContactPage() {
   const [contactPage, settings] = await Promise.all([
