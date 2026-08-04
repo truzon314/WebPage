@@ -1,8 +1,11 @@
 import type { Metadata } from "next";
-import { ComingSoon } from "@/components/ui/ComingSoon";
+import { SitemapGate } from "@/modules/content/SitemapGate";
 
-export const metadata: Metadata = { title: "Sitemap" };
+export const metadata: Metadata = {
+  title: "Sitemap",
+  description: "Share your details to view our full project listings.",
+};
 
 export default function SitemapPage() {
-  return <ComingSoon title="Sitemap" description="A full site directory is coming soon." />;
+  return <SitemapGate />;
 }

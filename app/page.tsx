@@ -1,19 +1,32 @@
 import type { Metadata } from "next";
-import { Hero, type HeroSlide } from "@/components/sections/Hero";
-import { SignatureCollections } from "@/components/sections/SignatureCollections";
-import { ExploreCategories } from "@/components/sections/ExploreCategories";
-import { WhyChooseUs } from "@/components/sections/WhyChooseUs";
-import { Stats } from "@/components/sections/Stats";
-import { Testimonials } from "@/components/sections/Testimonials";
-import { LatestInsights } from "@/components/sections/LatestInsights";
-import { FAQ } from "@/components/sections/FAQ";
-import { CTA } from "@/components/sections/CTA";
-import { PropertySearchProvider } from "@/lib/context/PropertySearchContext";
-import { getPage, getSettings, listBlogPosts, listProperties } from "@/lib/cms";
-import { toBlogPost, toProperty, toTelHref } from "@/lib/cms-mappers";
+import dynamic from "next/dynamic";
+import { Hero, type HeroSlide } from "@/modules/content/Hero";
+import { getPage, getSettings } from "@/modules/content/api";
+import { toTelHref } from "@/modules/content/mappers";
+import { SignatureCollections } from "@/modules/properties/SignatureCollections";
+import { PropertySearchProvider } from "@/modules/properties/PropertySearchContext";
+import { listCategories, listProperties } from "@/modules/properties/api";
+import { toProperty } from "@/modules/properties/mappers";
+import { listBlogPosts } from "@/modules/blog/api";
+import { toBlogPost } from "@/modules/blog/mappers";
+import { listTestimonials } from "@/modules/testimonials/api";
+import { toTestimonial } from "@/modules/testimonials/mappers";
 import { CONTACT_INFO } from "@/lib/constants/navigation";
 import { buildMetadata } from "@/lib/seo";
-import type { FaqItem } from "@/types";
+import type { FaqItem } from "@/modules/content/types";
+
+// Below-the-fold sections — code-split out of the initial JS bundle (still
+// server-rendered, `ssr` defaults to true) since none of them are needed
+// for first paint or LCP, which are both owned by Hero above.
+const ExploreCategories = dynamic(() =>
+  import("@/modules/properties/ExploreCategories").then((m) => m.ExploreCategories)
+);
+const WhyChooseUs = dynamic(() => import("@/modules/content/WhyChooseUs").then((m) => m.WhyChooseUs));
+const Stats = dynamic(() => import("@/modules/content/Stats").then((m) => m.Stats));
+const Testimonials = dynamic(() => import("@/modules/content/Testimonials").then((m) => m.Testimonials));
+const LatestInsights = dynamic(() => import("@/modules/blog/LatestInsights").then((m) => m.LatestInsights));
+const FAQ = dynamic(() => import("@/modules/content/FAQ").then((m) => m.FAQ));
+const CTA = dynamic(() => import("@/modules/content/CTA").then((m) => m.CTA));
 
 export async function generateMetadata(): Promise<Metadata> {
   const [homePage, settings] = await Promise.all([getPage("home").catch(() => null), getSettings().catch(() => null)]);
@@ -49,15 +62,19 @@ const FALLBACK_HERO = {
 };
 
 export default async function Home() {
-  const [homePage, { items: propertyItems }, { items: blogItems }, settings] = await Promise.all([
-    getPage("home").catch(() => null),
-    listProperties().catch(() => ({ items: [], total: 0 })),
-    listBlogPosts({ per_page: 3 }).catch(() => ({ items: [], total: 0 })),
-    getSettings().catch(() => null),
-  ]);
+  const [homePage, { items: propertyItems }, { items: blogItems }, settings, propertyTypes, cmsTestimonials] =
+    await Promise.all([
+      getPage("home").catch(() => null),
+      listProperties().catch(() => ({ items: [], total: 0 })),
+      listBlogPosts({ per_page: 3 }).catch(() => ({ items: [], total: 0 })),
+      getSettings().catch(() => null),
+      listCategories("property").catch(() => []),
+      listTestimonials({ featuredOnly: true }).catch(() => []),
+    ]);
 
   const properties = propertyItems.map(toProperty);
   const posts = blogItems.map(toBlogPost);
+  const testimonials = cmsTestimonials.map(toTestimonial);
 
   const heroBlock = homePage?.blocks.find((b) => b.type === "hero_banner");
   const hero = { ...FALLBACK_HERO, ...heroBlock?.config };
@@ -73,13 +90,18 @@ export default async function Home() {
   return (
     <>
       <PropertySearchProvider properties={properties}>
-        <Hero slides={heroSlides} buttonLabel={hero.button_label} buttonHref={hero.button_href} />
+        <Hero
+          slides={heroSlides}
+          buttonLabel={hero.button_label}
+          buttonHref={hero.button_href}
+          propertyTypes={propertyTypes.map((t) => t.name)}
+        />
         <SignatureCollections />
       </PropertySearchProvider>
       <ExploreCategories />
-      <WhyChooseUs />
+      <WhyChooseUs imageUrl={settings?.why_choose_image_url} />
       <Stats />
-      <Testimonials />
+      <Testimonials testimonials={testimonials} />
       <LatestInsights posts={posts} />
       <FAQ heading={faqBlock?.config.heading} items={faqBlock?.config.items as FaqItem[] | undefined} />
       <CTA

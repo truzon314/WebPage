@@ -1,5 +1,5 @@
 import type { MetadataRoute } from "next";
-import { getSettings, getSitemapEntries } from "@/lib/cms";
+import { getSettings, getSitemapEntries } from "@/modules/content/api";
 
 export const dynamic = "force-dynamic";
 

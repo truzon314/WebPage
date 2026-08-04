@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { AnimatePresence, motion } from "framer-motion";
 import { CalendarClock, ChevronDown, LifeBuoy, Search, type LucideIcon } from "lucide-react";
-import { GET_IN_TOUCH_ITEMS } from "@/lib/constants/contact";
+import { GET_IN_TOUCH_ITEMS } from "@/modules/leads/constants";
 import { cn } from "@/lib/utils";
 import type { GetInTouchItem } from "@/types";
 

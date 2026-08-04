@@ -1,9 +1,10 @@
 import type { Metadata } from "next";
-import { PageHero } from "@/components/sections/PageHero";
-import { BlogGrid } from "@/components/sections/BlogGrid";
-import { CTA } from "@/components/sections/CTA";
-import { getPage, listBlogPosts } from "@/lib/cms";
-import { toBlogPost } from "@/lib/cms-mappers";
+import { PageHero } from "@/modules/content/PageHero";
+import { CTA } from "@/modules/content/CTA";
+import { getPage } from "@/modules/content/api";
+import { BlogGrid } from "@/modules/blog/BlogGrid";
+import { listBlogPosts } from "@/modules/blog/api";
+import { toBlogPost } from "@/modules/blog/mappers";
 
 export const metadata: Metadata = {
   title: "Blog",

@@ -1,4 +1,4 @@
-import { CMS_URL } from "@/lib/cms";
+import { CMS_URL } from "@/lib/cms-client";
 
 export const dynamic = "force-dynamic";
 

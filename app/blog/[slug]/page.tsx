@@ -4,10 +4,10 @@ import Image from "next/image";
 import { Clock } from "lucide-react";
 import { Container } from "@/components/ui/Container";
 import { Button } from "@/components/ui/Button";
-import { PageHero } from "@/components/sections/PageHero";
+import { PageHero } from "@/modules/content/PageHero";
 import { JsonLd } from "@/components/seo/JsonLd";
-import { getBlogPost } from "@/lib/cms";
-import { toBlogPost } from "@/lib/cms-mappers";
+import { getBlogPost } from "@/modules/blog/api";
+import { toBlogPost } from "@/modules/blog/mappers";
 import { articleJsonLd, buildMetadata } from "@/lib/seo";
 
 const SITE_URL = "https://www.truzonhomes.com";
@@ -21,6 +21,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
     path: `/blog/${slug}`,
     fallbackTitle: post.title,
     fallbackDescription: post.excerpt || "",
+    fallbackImage: post.featured_image_url,
   });
 }
 

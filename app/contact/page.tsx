@@ -1,11 +1,12 @@
 import type { Metadata } from "next";
 import Image from "next/image";
 import mapPhoto from "@/public/images/placeholders/contact-map-photo.png";
-import { PageHero } from "@/components/sections/PageHero";
-import { ContactInfoCards } from "@/components/sections/ContactInfoCards";
-import { ContactForm } from "@/components/sections/ContactForm";
+import { PageHero } from "@/modules/content/PageHero";
+import { ContactInfoCards } from "@/modules/leads/ContactInfoCards";
+import { ContactForm } from "@/modules/leads/ContactForm";
 import { Container } from "@/components/ui/Container";
-import { getPage, getSettings } from "@/lib/cms";
+import { getPage, getSettings } from "@/modules/content/api";
+import { listCategories } from "@/modules/properties/api";
 import { buildMetadata } from "@/lib/seo";
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -24,9 +25,10 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function ContactPage() {
-  const [contactPage, settings] = await Promise.all([
+  const [contactPage, settings, propertyTypes] = await Promise.all([
     getPage("contact").catch(() => null),
     getSettings().catch(() => undefined),
+    listCategories("property").catch(() => []),
   ]);
   const formBlock = contactPage?.blocks.find((b) => b.type === "contact_form");
 
@@ -40,10 +42,14 @@ export default async function ContactPage() {
       <ContactInfoCards settings={settings} />
       <section className="pb-16 lg:pb-[90px]">
         <Container className="grid grid-cols-1 gap-8 lg:grid-cols-2 lg:gap-10">
-          <ContactForm heading={formBlock?.config.heading} description={formBlock?.config.description} />
+          <ContactForm
+            heading={formBlock?.config.heading}
+            description={formBlock?.config.description}
+            types={propertyTypes.map((t) => t.name)}
+          />
           <div className="relative h-[300px] w-full overflow-hidden rounded-[10px] lg:h-full lg:min-h-[420px]">
             <Image
-              src={mapPhoto}
+              src={settings?.contact_map_image_url || mapPhoto}
               alt="Truzon Homes corporate office location"
               fill
               sizes="(min-width: 1024px) 45vw, 100vw"

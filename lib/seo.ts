@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
-import type { CmsBlogPost, CmsProperty, CmsSeo, CmsSettings } from "@/lib/cms";
+import type { CmsSeo, CmsSettings } from "@/modules/content/api";
+import type { CmsBlogPost } from "@/modules/blog/api";
+import type { CmsProperty } from "@/modules/properties/api";
 
 const TWITTER_CARD_TYPES = new Set(["summary", "summary_large_image", "player", "app"]);
 
@@ -13,17 +15,30 @@ interface BuildMetadataOptions {
   path: string;
   fallbackTitle: string;
   fallbackDescription: string;
+  // Used only when neither the entity's own SEO panel nor the sitewide
+  // Global SEO Settings has an explicit OG image set — e.g. a property's
+  // own featured photo, so link previews (WhatsApp, iMessage, etc.) still
+  // show *something* relevant instead of no image at all, which is the
+  // common case since og_image is an optional field almost nothing fills in.
+  fallbackImage?: string | null;
 }
 
 /** Merges a CMS entity's SeoMeta over site-wide Global SEO Settings over a hardcoded fallback. */
-export function buildMetadata({ seo, settings, path, fallbackTitle, fallbackDescription }: BuildMetadataOptions): Metadata {
+export function buildMetadata({
+  seo,
+  settings,
+  path,
+  fallbackTitle,
+  fallbackDescription,
+  fallbackImage,
+}: BuildMetadataOptions): Metadata {
   const title = seo?.seo_title || settings?.default_meta_title || fallbackTitle;
   const description = seo?.meta_description || settings?.default_meta_description || fallbackDescription;
   const keywords = seo?.keywords ?? settings?.default_keywords ?? undefined;
   const canonical =
     seo?.canonical_url ||
     (settings?.default_canonical_url ? `${settings.default_canonical_url.replace(/\/$/, "")}${path}` : undefined);
-  const ogImage = seo?.og_image_url || settings?.og_default_image_url || undefined;
+  const ogImage = seo?.og_image_url || settings?.og_default_image_url || fallbackImage || undefined;
   const twitterImage = seo?.twitter_image_url || ogImage;
 
   return {

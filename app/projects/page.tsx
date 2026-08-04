@@ -1,9 +1,10 @@
 import type { Metadata } from "next";
-import { PageHero } from "@/components/sections/PageHero";
-import { ProjectsGrid } from "@/components/sections/ProjectsGrid";
-import { CTA } from "@/components/sections/CTA";
-import { getPage, getSettings, listProperties } from "@/lib/cms";
-import { toProperty } from "@/lib/cms-mappers";
+import { PageHero } from "@/modules/content/PageHero";
+import { CTA } from "@/modules/content/CTA";
+import { getPage, getSettings } from "@/modules/content/api";
+import { ProjectsGrid } from "@/modules/properties/ProjectsGrid";
+import { listCategories, listProperties } from "@/modules/properties/api";
+import { toProperty } from "@/modules/properties/mappers";
 import { buildMetadata } from "@/lib/seo";
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -34,9 +35,10 @@ const FALLBACK_CTA = {
 };
 
 export default async function ProjectsPage() {
-  const [{ items }, projectsPage] = await Promise.all([
+  const [{ items }, projectsPage, propertyTypes] = await Promise.all([
     listProperties().catch(() => ({ items: [], total: 0 })),
     getPage("projects").catch(() => null),
+    listCategories("property").catch(() => []),
   ]);
   const properties = items.map(toProperty);
 
@@ -52,7 +54,7 @@ export default async function ProjectsPage() {
         subtitle={hero.body}
         crumbs={[{ label: "Home", href: "/" }, { label: "Projects" }]}
       />
-      <ProjectsGrid properties={properties} />
+      <ProjectsGrid properties={properties} types={propertyTypes.map((t) => t.name)} />
       <CTA
         title={cta.heading}
         description={cta.description}
