@@ -20,7 +20,11 @@ export function WhatsAppButton({ whatsappHref }: { whatsappHref?: string }) {
       whileHover={{ scale: 1.08 }}
       whileTap={{ scale: 0.96 }}
       className={cn(
-        "fixed bottom-[calc(26px+env(safe-area-inset-bottom))] right-[26px] z-50 flex h-[54px] w-[54px] items-center justify-center rounded-full bg-whatsapp shadow-[0_6px_18px_rgba(0,0,0,0.25)] transition-opacity duration-200 lg:bottom-[26px]",
+        // Mobile: bottom-left corner, opposite the chat/message button
+        // (LiveChatWidget.tsx), so the two read as separate actions
+        // instead of stacked on the same side. Desktop keeps its
+        // original bottom-right corner, untouched.
+        "fixed bottom-[calc(26px+env(safe-area-inset-bottom))] left-[26px] z-50 flex h-[54px] w-[54px] items-center justify-center rounded-full bg-whatsapp shadow-[0_6px_18px_rgba(0,0,0,0.25)] transition-opacity duration-200 lg:bottom-[26px] lg:left-auto lg:right-[26px]",
         mapInView ? "pointer-events-none opacity-0" : "opacity-100"
       )}
     >

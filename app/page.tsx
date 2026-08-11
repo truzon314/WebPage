@@ -57,6 +57,7 @@ const FALLBACK_HERO = {
       subheading:
         "Discover architectural masterpieces and premium investment opportunities in the most coveted locations. Experience the pinnacle of understated luxury.",
       image_url: "",
+      mobile_image_url: "",
     },
   ],
 };
@@ -82,6 +83,7 @@ export default async function Home() {
     heading: s.heading,
     subheading: s.subheading,
     imageUrl: s.image_url || undefined,
+    mobileImageUrl: s.mobile_image_url || undefined,
   }));
   const faqBlock = homePage?.blocks.find((b) => b.type === "faq");
   const ctaBlock = homePage?.blocks.find((b) => b.type === "cta");

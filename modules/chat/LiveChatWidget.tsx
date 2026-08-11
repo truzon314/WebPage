@@ -124,7 +124,10 @@ export function LiveChatWidget() {
     <div
       aria-hidden={mapInView}
       className={cn(
-        "fixed bottom-[calc(98px+env(safe-area-inset-bottom))] right-[26px] z-[60] flex flex-col items-end gap-3 transition-opacity duration-200 lg:bottom-[98px]",
+        // Mobile: bottom-right corner (WhatsApp has swapped to bottom-left,
+        // WhatsAppButton.tsx) — same right-side slot as desktop, just a
+        // different bottom offset so it clears WhatsApp's own row.
+        "fixed bottom-[calc(26px+env(safe-area-inset-bottom))] right-[26px] z-[60] flex flex-col items-end gap-3 transition-opacity duration-200 lg:bottom-[98px]",
         mapInView ? "pointer-events-none opacity-0" : "opacity-100"
       )}
     >
@@ -137,7 +140,11 @@ export function LiveChatWidget() {
             transition={{ duration: 0.2 }}
             role="dialog"
             aria-label="Live chat"
-            className="flex w-[300px] flex-col overflow-hidden rounded-xl border border-divider bg-surface shadow-[0_20px_50px_rgba(10,18,36,0.3)]"
+            // min(300px, ...): caps at 300px like before on desktop, but
+            // shrinks on narrow phones so the panel (opening from
+            // right-[26px]) can't run off the left edge of the screen
+            // (100vw-52px keeps a consistent 26px margin on both sides).
+            className="flex w-[min(300px,calc(100vw-52px))] flex-col overflow-hidden rounded-xl border border-divider bg-surface shadow-[0_20px_50px_rgba(10,18,36,0.3)]"
           >
             <div className="bg-navy-950 px-5 py-4 text-white">
               <div className="font-heading text-[15px] font-bold">Chat with Truzon Homes</div>
@@ -220,7 +227,7 @@ export function LiveChatWidget() {
         aria-label={open ? "Close live chat" : "Open live chat"}
         whileHover={{ scale: 1.08 }}
         whileTap={{ scale: 0.96 }}
-        className="flex h-[60px] w-[60px] items-center justify-center rounded-full bg-navy-800 text-white shadow-[0_6px_18px_rgba(0,0,0,0.25)] cursor-pointer"
+        className="flex h-[60px] w-[60px] items-center justify-center rounded-full bg-gold-400 text-navy-900 shadow-[0_6px_18px_rgba(0,0,0,0.25)] hover:bg-gold-500 cursor-pointer"
       >
         {open ? <X size={26} /> : <MessageCircle size={26} />}
       </motion.button>

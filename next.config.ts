@@ -3,7 +3,8 @@ import type { NextConfig } from "next";
 const nextConfig: NextConfig = {
   // Standalone output: a minimal, self-contained server bundle instead of
   // requiring `node_modules` + the full source tree at runtime — the whole
-  // point of a lean production container (GCP_DEPLOYMENT.md §2).
+  // point of a lean production container (see Dockerfile, which copies
+  // exactly this `.next/standalone` output into the runner stage).
   output: "standalone",
   // Lets other devices on the same WiFi (phones, tablets) reach this dev
   // server and its RSC endpoints — Next.js blocks cross-origin dev requests
@@ -23,16 +24,21 @@ const nextConfig: NextConfig = {
         port: "8000",
         pathname: "/media-files/**",
       },
-      // Production backend, once deployed (GCP_DEPLOYMENT.md §3) — serves
-      // media directly when R2 isn't configured, or as a fallback.
+      // Production backend, once deployed — serves media directly from
+      // its own /media-files route when R2 isn't configured, or as a
+      // fallback. Placeholder hostname: replace with the real production
+      // API domain before deploying, or image optimization will fail
+      // with "hostname is not configured" for every property/blog image.
       {
         protocol: "https",
         hostname: "api.truzonhomes.com",
         pathname: "/media-files/**",
       },
-      // Production media, once R2 is configured (GCP_DEPLOYMENT.md §2) — the
-      // exact hostname depends on the public base URL you set for the R2
-      // bucket; adjust this to match once that's chosen.
+      // Production media, once R2 (or another object store) is configured.
+      // Placeholder hostname — the real value depends on the public base
+      // URL of that bucket, which isn't chosen yet; adjust (or remove, if
+      // media keeps being served through the API host above instead) once
+      // it is, same caveat as api.truzonhomes.com above.
       {
         protocol: "https",
         hostname: "media.truzonhomes.com",

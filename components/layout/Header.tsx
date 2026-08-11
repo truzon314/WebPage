@@ -47,6 +47,13 @@ export function Header({ mainNav, logoUrl }: { mainNav: NavLink[]; logoUrl?: str
     };
   }, []);
 
+  // Single source of truth for the header's background at each breakpoint —
+  // computed once instead of stacking multiple conditional `lg:bg-*`
+  // classes, which would leave two utilities targeting the same property at
+  // the same breakpoint and make the winner depend on Tailwind's internal
+  // class-generation order rather than anything explicit here.
+  const headerBg = isSolid ? "bg-[#f3f6fb] lg:bg-[rgba(255,250,250,0.98)]" : "bg-[#f3f6fb] lg:bg-transparent";
+
   return (
     <header
       ref={headerRef}
@@ -54,15 +61,21 @@ export function Header({ mainNav, logoUrl }: { mainNav: NavLink[]; logoUrl?: str
         // Mobile (below lg:) is always fixed, solid, and shadowed — desktop
         // keeps the original transparent-over-hero/sticky behavior, applied
         // only via lg: overrides so it's untouched pixel-for-pixel.
-        "fixed inset-x-0 top-0 z-[100] border-b border-navy-900/8 bg-[rgba(255,250,250,0.98)] pt-[env(safe-area-inset-top)] shadow-sm backdrop-blur-md transition-[background,backdrop-filter,border-color,padding] duration-300",
+        "fixed inset-x-0 top-0 z-[100] border-b border-navy-900/8 pt-[env(safe-area-inset-top)] shadow-sm backdrop-blur-md transition-[background,backdrop-filter,border-color,padding] duration-300",
+        headerBg,
         !isHome && "lg:sticky",
-        !isSolid && "lg:border-transparent lg:bg-transparent lg:shadow-none lg:backdrop-blur-none"
+        !isSolid && "lg:border-transparent lg:shadow-none lg:backdrop-blur-none"
       )}
     >
       <Container size="wide">
         <div
           className={cn(
-            "grid grid-cols-[auto_1fr_auto] items-center gap-6 py-3 transition-[padding] duration-300",
+            // Mobile: logo pinned left, menu button pinned right, no dead
+            // middle column (the nav that fills it is lg:-only) — flex +
+            // justify-between keeps both vertically centered against each
+            // other on one clean baseline. Desktop keeps its original
+            // 3-column grid so the centered nav row is untouched.
+            "flex items-center justify-between gap-6 py-3 transition-[padding] duration-300 lg:grid lg:grid-cols-[auto_1fr_auto] lg:justify-normal",
             isSolid ? "lg:py-2" : "lg:py-1.5"
           )}
         >
@@ -135,36 +148,55 @@ export function Header({ mainNav, logoUrl }: { mainNav: NavLink[]; logoUrl?: str
 
       {/* Mobile primary navigation — a top-right menu button that drops
           down the same links, instead of a persistent bottom bar. Desktop
-          (lg: and up) is untouched; this is hidden there. */}
+          (lg: and up) is untouched; this is hidden there.
+
+          Slide-down reveal: the outer motion.div animates `height` 0 → "auto"
+          (Framer Motion measures the content itself, no hardcoded height to
+          keep in sync) with overflow-hidden so the panel grows downward from
+          under the header, instead of a plain fade. The inner <nav> carries
+          the actual visual styling and stays unanimated. shadow-lg lives on
+          this outer div, not the inner <nav> — a child's box-shadow gets
+          clipped by an ancestor's overflow-hidden once the child's box fills
+          that ancestor exactly (as the nav does here), so the shadow has to
+          be on the element whose own overflow-hidden it needs to survive. */}
       <AnimatePresence>
         {mobileMenuOpen && (
-          <motion.nav
-            id="mobile-primary-nav"
-            aria-label="Mobile primary"
-            initial={{ opacity: 0, y: -8 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -8 }}
-            transition={{ duration: 0.18 }}
-            className="absolute inset-x-0 top-full flex flex-col border-t border-navy-900/10 bg-[rgba(255,250,250,0.98)] backdrop-blur-md shadow-lg lg:hidden"
+          <motion.div
+            initial={{ height: 0 }}
+            animate={{ height: "auto" }}
+            exit={{ height: 0 }}
+            transition={{ duration: 0.28, ease: [0.4, 0, 0.2, 1] }}
+            className="absolute inset-x-0 top-full overflow-hidden shadow-lg lg:hidden"
           >
-            {mainNav.map((link) => {
-              const active = link.href === "/" ? pathname === "/" : pathname.startsWith(link.href);
-              return (
-                <Link
-                  key={link.href}
-                  href={link.href}
-                  aria-current={active ? "page" : undefined}
-                  onClick={() => setMobileMenuOpen(false)}
-                  className={cn(
-                    "border-b border-navy-900/6 px-6 py-4 text-[13px] font-semibold tracking-[0.5px] transition-colors",
-                    active ? "text-gold-600" : "text-navy-800 hover:text-navy-900"
-                  )}
-                >
-                  {link.label.toUpperCase()}
-                </Link>
-              );
-            })}
-          </motion.nav>
+            <nav
+              id="mobile-primary-nav"
+              aria-label="Mobile primary"
+              className="flex flex-col border-t border-navy-900/10 bg-[#f3f6fb] backdrop-blur-md"
+            >
+              {mainNav.map((link) => {
+                const active = link.href === "/" ? pathname === "/" : pathname.startsWith(link.href);
+                return (
+                  <Link
+                    key={link.href}
+                    href={link.href}
+                    aria-current={active ? "page" : undefined}
+                    onClick={() => setMobileMenuOpen(false)}
+                    className={cn(
+                      "border-b border-navy-900/6 px-6 py-4 text-[13px] font-semibold tracking-[0.5px] transition-colors",
+                      // Same gold as the hero carousel's active dot (bg-gold-400 in
+                      // Hero.tsx) and the desktop nav's active link (text-gold-600 /
+                      // border-gold-500 above) — one "gold = active/selected" accent
+                      // used consistently for both the active state and the hover
+                      // preview of it, instead of active-state using a different color.
+                      active ? "bg-gold-400 text-black" : "text-navy-800 hover:bg-gold-400 hover:text-black"
+                    )}
+                  >
+                    {link.label.toUpperCase()}
+                  </Link>
+                );
+              })}
+            </nav>
+          </motion.div>
         )}
       </AnimatePresence>
     </header>
