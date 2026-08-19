@@ -1,4 +1,4 @@
-import { CMS_URL, type ApiEnvelope } from "@/lib/cms-client";
+import { cmsFetch, type ApiEnvelope } from "@/lib/cms-client";
 import type { ChatMessage, ChatMessageSender } from "@/modules/chat/types";
 
 interface WireChatMessage {
@@ -10,7 +10,12 @@ interface WireChatMessage {
 }
 
 function toChatMessage(wire: WireChatMessage): ChatMessage {
-  return { id: wire.id, sender: wire.sender, body: wire.body, createdAt: wire.created_at };
+  return {
+    id: wire.id,
+    sender: wire.sender,
+    body: wire.body,
+    createdAt: wire.created_at,
+  };
 }
 
 export interface VisitorContact {
@@ -24,7 +29,10 @@ export async function postVisitorMessage(
   body: string,
   contact?: VisitorContact
 ): Promise<{ conversationId: string; messages: ChatMessage[] }> {
-  const res = await fetch(`${CMS_URL}/public/chat/messages`, {
+  const envelope = await cmsFetch<{
+    conversation_id: string;
+    messages: WireChatMessage[];
+  }>("/public/chat/messages", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
@@ -35,23 +43,32 @@ export async function postVisitorMessage(
       visitor_email: contact?.email,
     }),
   });
-  const envelope = (await res.json()) as ApiEnvelope<{ conversation_id: string; messages: WireChatMessage[] }>;
-  if (!res.ok || !envelope.success || !envelope.data) {
-    throw new Error(envelope.error?.message ?? "Could not send your message — please try again.");
+
+  if (!envelope.success || !envelope.data) {
+    throw new Error(
+      envelope.error?.message ??
+        "Could not send your message — please try again."
+    );
   }
+
   return {
     conversationId: envelope.data.conversation_id,
     messages: envelope.data.messages.map(toChatMessage),
   };
 }
 
-export async function getMessages(conversationId: string): Promise<ChatMessage[]> {
-  const res = await fetch(`${CMS_URL}/public/chat/conversations/${conversationId}/messages`, {
-    cache: "no-store",
-  });
-  const envelope = (await res.json()) as ApiEnvelope<{ messages: WireChatMessage[] }>;
-  if (!res.ok || !envelope.success || !envelope.data) {
-    throw new Error(envelope.error?.message ?? "Could not load messages.");
+export async function getMessages(
+  conversationId: string
+): Promise<ChatMessage[]> {
+  const envelope = await cmsFetch<{
+    messages: WireChatMessage[];
+  }>(`/public/chat/conversations/${conversationId}/messages`);
+
+  if (!envelope.success || !envelope.data) {
+    throw new Error(
+      envelope.error?.message ?? "Could not load messages."
+    );
   }
+
   return envelope.data.messages.map(toChatMessage);
 }

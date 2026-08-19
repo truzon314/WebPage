@@ -9,6 +9,7 @@ import { EnquiryForm } from "@/modules/leads/EnquiryForm";
 import { SearchBar } from "@/modules/properties/SearchBar";
 import { useAutoRotate } from "@/hooks/useAutoRotate";
 import { cn } from "@/lib/utils";
+import { resolveMediaUrl } from "@/lib/cms-client";
 import heroVillaStreet from "@/public/images/extracted/hero-villa-street.jpg";
 
 export interface HeroSlide {
@@ -63,12 +64,26 @@ export function Hero({ slides, buttonLabel, buttonHref, propertyTypes }: HeroPro
           preload scanner discovers it immediately without an explicit hint. */}
       {slides.map((s, i) => {
         const common = { alt: "", fill: true as const, sizes: "100vw" };
-        const { props: desktopImg } = getImageProps({ ...common, src: s.imageUrl || heroVillaStreet });
+
+        const desktopSrc =
+          resolveMediaUrl(s.imageUrl) ?? heroVillaStreet;
+
+        const mobileSrc =
+          resolveMediaUrl(s.mobileImageUrl) ??
+          resolveMediaUrl(s.imageUrl) ??
+          heroVillaStreet;
+
+        const { props: desktopImg } = getImageProps({
+          ...common,
+          src: desktopSrc,
+        });
+
         const { props: mobileImg } = getImageProps({
           ...common,
-          src: s.mobileImageUrl || s.imageUrl || heroVillaStreet,
+          src: mobileSrc,
           loading: i === 0 ? "eager" : "lazy",
         });
+
         return (
           <div
             key={i}
@@ -82,7 +97,11 @@ export function Hero({ slides, buttonLabel, buttonHref, propertyTypes }: HeroPro
               transition={{ duration: 6, ease: "easeOut" }}
             >
               <picture>
-                <source media="(min-width: 1024px)" srcSet={desktopImg.srcSet} sizes={desktopImg.sizes} />
+                <source
+                  media="(min-width: 1024px)"
+                  srcSet={desktopImg.srcSet}
+                  sizes={desktopImg.sizes}
+                />
                 {/* alt already flows through {...mobileImg} (from getImageProps'
                     `common.alt`), but the a11y linter can't see through the
                     spread — repeated explicitly so both are satisfied. */}
@@ -113,9 +132,15 @@ export function Hero({ slides, buttonLabel, buttonHref, propertyTypes }: HeroPro
               <h1 className="mb-5 font-heading text-[32px] font-bold leading-[1.12] text-white [text-shadow:0_2px_16px_rgba(0,0,0,0.35)] sm:text-[52px] lg:text-[68px]">
                 {slide.heading}
               </h1>
-              <p className="mb-8 max-w-[480px] text-base leading-[1.7] text-[#c7cedb]">{slide.subheading}</p>
+              <p className="mb-8 max-w-[480px] text-base leading-[1.7] text-[#c7cedb]">
+                {slide.subheading}
+              </p>
               <div className="flex flex-wrap gap-3 sm:gap-4">
-                <Button href={buttonHref} variant="gold" className="px-5 py-3 text-[12px] sm:px-7 sm:py-4 sm:text-[13px]">
+                <Button
+                  href={buttonHref}
+                  variant="gold"
+                  className="px-5 py-3 text-[12px] sm:px-7 sm:py-4 sm:text-[13px]"
+                >
                   {buttonLabel}
                 </Button>
                 <Button

@@ -7,6 +7,7 @@ import whyChoosePhoto from "@/public/images/placeholders/why-choose-photo.png";
 import { Container } from "@/components/ui/Container";
 import { FEATURES } from "@/modules/content/constants/features";
 import type { FeatureItem } from "@/modules/content/types";
+import { resolveMediaUrl } from "@/lib/cms-client";
 
 const ICONS: Record<FeatureItem["icon"], LucideIcon> = {
   shield: ShieldCheck,
@@ -26,6 +27,8 @@ const item = {
 };
 
 export function WhyChooseUs({ imageUrl }: { imageUrl?: string | null }) {
+  const resolvedImageUrl = resolveMediaUrl(imageUrl);
+
   return (
     <section className="py-16 lg:py-[90px]">
       <Container className="grid grid-cols-1 items-center gap-12 lg:grid-cols-[0.9fr_1.1fr] lg:gap-[70px]">
@@ -37,7 +40,13 @@ export function WhyChooseUs({ imageUrl }: { imageUrl?: string | null }) {
           className="relative"
         >
           <div className="relative h-[320px] w-full overflow-hidden rounded-[10px] sm:h-[420px]">
-            <Image src={imageUrl || whyChoosePhoto} alt="The Truzon Homes team at work" fill sizes="(min-width: 1024px) 45vw, 100vw" className="object-cover" />
+            <Image
+              src={resolvedImageUrl || whyChoosePhoto}
+              alt="The Truzon Homes team at work"
+              fill
+              sizes="(min-width: 1024px) 45vw, 100vw"
+              className="object-cover"
+            />
           </div>
           <div className="absolute -bottom-px right-4 max-w-[230px] rounded-lg bg-navy-950 px-[30px] py-[26px] text-white shadow-[0_12px_30px_rgba(10,18,36,0.3)] sm:-right-[30px]">
             <div className="font-heading text-[38px] font-bold text-gold-400">15+</div>

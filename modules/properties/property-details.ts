@@ -1,3 +1,4 @@
+import { resolveMediaUrl } from "@/lib/cms-client";
 import type { StaticImageData } from "next/image";
 import { PROPERTIES } from "@/modules/properties/constants/properties";
 import type { CmsProperty } from "@/modules/properties/api";
@@ -67,7 +68,7 @@ const DESCRIPTIONS: Record<string, string> = {
   "heaven-city":
     "Heaven City is a premium DTCP & RERA approved mega residential layout situated strategically along the Mumbai Highway corridor in Ranjole, Zaheerabad. Built for luxury modern living and rapid capital appreciation, Heaven City features wide 100ft & 40ft black top roads, underground utilities, lush avenue plantation, landscaped parks, and 24/7 gated security.",
   "elysian-woods":
-    "Nestled in the lush greenery of Whitefield, Elysian Woods offers ultra-luxury private villas with secluded gardens, private pools, soaring double-height ceilings, and state-of-the-art home automation.",
+    "Nestled in the lush greenery of Whitefield, Elysian Woods offers ultra-luxury private villas with secluded gardens, private pools, soaring double-height ceilings,and state-of-the-art home automation.",
   "grand-estate":
     "The Grand Estate in Kokapet offers prime residential plots within an eco-conscious gated layout featuring underground cabling, wide internal roads, and immediate RERA/DTCP clearance.",
   "rv-green-park":
@@ -103,23 +104,24 @@ export function getDetailedProperty(
   }
 
   if (!baseProp) {
-    // If neither static nor CMS property matches, fallback to first static property or construct one
     baseProp = staticProp ?? PROPERTIES[0];
   }
 
-  // Real CMS content first; the per-slug tables below only cover the original
-  // seed properties and exist purely as a fallback for when the CMS is
-  // unreachable or a property hasn't had its description/amenities filled in yet.
   const description = cmsProperty?.description || DESCRIPTIONS[normalizedId] || "";
 
   const gallery =
-    (cmsProperty?.gallery && cmsProperty.gallery.length > 0)
+    cmsProperty?.gallery && cmsProperty.gallery.length > 0
       ? cmsProperty.gallery
-      : (GALLERIES[normalizedId] || [baseProp.image, projGrand, projRv, heroPhoto3]);
+          .map((url) => resolveMediaUrl(url))
+          .filter((url): url is string => Boolean(url))
+      : GALLERIES[normalizedId] || [baseProp.image, projGrand, projRv, heroPhoto3];
 
   const amenities: PropertyAmenity[] =
     cmsProperty?.amenities && cmsProperty.amenities.length > 0
-      ? cmsProperty.amenities.map((a) => ({ name: a.name, image: a.image_url ?? undefined }))
+      ? cmsProperty.amenities.map((a) => ({
+          name: a.name,
+          image: resolveMediaUrl(a.image_url) ?? undefined,
+        }))
       : AMENITIES_CATALOG[normalizedId] || AMENITIES_CATALOG["default"];
 
   return {
@@ -129,6 +131,6 @@ export function getDetailedProperty(
     amenities,
     phone: phone || DEFAULT_PHONE,
     mapProjectId: cmsProperty?.map_project_id ?? null,
-    brochureUrl: cmsProperty?.brochure_url ?? null,
+    brochureUrl: resolveMediaUrl(cmsProperty?.brochure_url) ?? null,
   };
 }

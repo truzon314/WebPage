@@ -52,7 +52,9 @@ export function Header({ mainNav, logoUrl }: { mainNav: NavLink[]; logoUrl?: str
   // classes, which would leave two utilities targeting the same property at
   // the same breakpoint and make the winner depend on Tailwind's internal
   // class-generation order rather than anything explicit here.
-  const headerBg = isSolid ? "bg-[#f3f6fb] lg:bg-[rgba(255,250,250,0.98)]" : "bg-[#f3f6fb] lg:bg-transparent";
+  const headerBg = isSolid
+  ? "bg-[#FFFAFA] lg:bg-[#FFFAFA]"
+  : "bg-[#FFFAFA] lg:bg-transparent";
 
   return (
     <header
