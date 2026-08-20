@@ -23,7 +23,7 @@ export function TeamSection({
   }
 
   return (
-    <section className="bg-[#F2F0E6] py-16 sm:py-20 lg:py-24">
+    <section className="bg-surface-muted py-16 sm:py-20 lg:py-24">
       <div className="mx-auto w-full max-w-[1400px] px-6 sm:px-10 lg:px-[60px]">
         {heading ? (
           <div className="mb-10 text-center lg:mb-14">
