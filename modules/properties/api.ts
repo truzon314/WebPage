@@ -51,6 +51,7 @@ export interface CmsMapLayer {
   default_visible: boolean;
   color_rules: { id: string; property: string; value: string; action: "color" | "hide"; color?: string; opacity?: number }[] | null;
   label_property: string | null;
+  label_alignment: string | null;
   popup_enabled: boolean;
   popup_properties: string[] | null;
   stroke_style: "solid" | "dashed" | "dotted";

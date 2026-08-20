@@ -210,9 +210,113 @@ export function PropertyLocationMap({ projectId }: Props) {
             const prop = layer.label_property;
             const currentZoom = map.getZoom();
             const currentFontSize = fontSizeForZoom(currentZoom);
-            for (const feature of geojson.features) {
+
+            // Compute the display position for each feature's label.
+            // "center" (default) = individual centroid per feature.
+            // "aligned" = snap labels in the same row/column to a shared center line.
+            const centroids: (L.LatLngExpression | null)[] = geojson.features.map((f) =>
+              centroidOf(f.geometry)
+            );
+
+            let displayPositions: (L.LatLngExpression | null)[] = centroids;
+
+            if (layer.label_alignment === "aligned") {
+              // --- Aligned Center algorithm ---
+              // 1. Collect valid [lat, lng] centroids alongside original indices.
+              type PointEntry = { idx: number; lat: number; lng: number };
+              const pts: PointEntry[] = [];
+              centroids.forEach((c, i) => {
+                if (c) {
+                  const [lat, lng] = c as [number, number];
+                  pts.push({ idx: i, lat, lng });
+                }
+              });
+
+              if (pts.length > 0) {
+                // 2. Group by proximity: two points belong to the same group if
+                //    they are within `threshold` degrees of each other. Threshold
+                //    is derived from median nearest-neighbor distance, capped to
+                //    a reasonable maximum so sparse isolated plots don't all merge.
+                const sorted = [...pts].sort((a, b) => a.lat - b.lat || a.lng - b.lng);
+
+                // Compute median nearest-neighbor distance for dynamic threshold.
+                const nnDists: number[] = sorted.map((p, i) => {
+                  let min = Infinity;
+                  for (let j = Math.max(0, i - 5); j < Math.min(sorted.length, i + 6); j++) {
+                    if (j === i) continue;
+                    const d = Math.hypot(p.lat - sorted[j].lat, p.lng - sorted[j].lng);
+                    if (d < min) min = d;
+                  }
+                  return min === Infinity ? 0 : min;
+                });
+                nnDists.sort((a, b) => a - b);
+                const medianNN = nnDists[Math.floor(nnDists.length / 2)] || 0;
+                const threshold = Math.min(medianNN * 2.5, 0.002);
+
+                // Union-Find grouping.
+                const parent = pts.map((_, i) => i);
+                function find(i: number): number {
+                  if (parent[i] !== i) parent[i] = find(parent[i]);
+                  return parent[i];
+                }
+                function union(a: number, b: number) {
+                  parent[find(a)] = find(b);
+                }
+                for (let i = 0; i < pts.length; i++) {
+                  for (let j = i + 1; j < pts.length; j++) {
+                    const d = Math.hypot(pts[i].lat - pts[j].lat, pts[i].lng - pts[j].lng);
+                    if (d <= threshold) union(i, j);
+                  }
+                }
+
+                // Collect groups.
+                const groups = new Map<number, PointEntry[]>();
+                pts.forEach((p, i) => {
+                  const root = find(i);
+                  if (!groups.has(root)) groups.set(root, []);
+                  groups.get(root)!.push(p);
+                });
+
+                // Build a lookup: feature-index → aligned display position.
+                const aligned = new Map<number, L.LatLngExpression>();
+                groups.forEach((group) => {
+                  if (group.length === 1) {
+                    // Single isolated plot — keep its own centroid.
+                    const { idx, lat, lng } = group[0];
+                    aligned.set(idx, [lat, lng]);
+                    return;
+                  }
+
+                  // Measure spread in each axis.
+                  const lats = group.map((p) => p.lat);
+                  const lngs = group.map((p) => p.lng);
+                  const latSpread = Math.max(...lats) - Math.min(...lats);
+                  const lngSpread = Math.max(...lngs) - Math.min(...lngs);
+
+                  const meanLat = lats.reduce((s, v) => s + v, 0) / lats.length;
+                  const meanLng = lngs.reduce((s, v) => s + v, 0) / lngs.length;
+
+                  group.forEach(({ idx, lat, lng }) => {
+                    if (latSpread >= lngSpread) {
+                      // Primarily a vertical column — share X (lng), keep individual Y (lat).
+                      aligned.set(idx, [lat, meanLng]);
+                    } else {
+                      // Primarily a horizontal row — share Y (lat), keep individual X (lng).
+                      aligned.set(idx, [meanLat, lng]);
+                    }
+                  });
+                });
+
+                // Rebuild displayPositions using aligned map where available.
+                displayPositions = centroids.map((c, i) => aligned.get(i) ?? c);
+              }
+            }
+            // --- End alignment algorithm ---
+
+            for (let fi = 0; fi < geojson.features.length; fi++) {
+              const feature = geojson.features[fi];
               if (matchRule(layer, feature.properties)?.action === "hide") continue;
-              const center = centroidOf(feature.geometry);
+              const center = displayPositions[fi];
               const text = feature.properties?.[prop];
               if (!center || text == null) continue;
 
