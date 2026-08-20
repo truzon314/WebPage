@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { PageHero } from "@/modules/content/PageHero";
-import { CTA } from "@/modules/content/CTA";
+import { CmsBlockRenderer } from "@/modules/content/CmsBlockRenderer";
 import { getPage } from "@/modules/content/api";
 import { BlogGrid } from "@/modules/blog/BlogGrid";
 import { listBlogPosts } from "@/modules/blog/api";
@@ -16,14 +16,6 @@ const FALLBACK_HERO = {
   body: "Market trends, buying guides and life inside a Truzon community.",
 };
 
-const FALLBACK_CTA = {
-  heading: "Have a question we haven't covered?",
-  description:
-    "Our consultants are happy to walk you through anything — market timing, financing, or a specific project.",
-  button_label: "ASK OUR TEAM",
-  button_href: "/contact",
-};
-
 export default async function BlogPage() {
   const [{ items }, blogPage] = await Promise.all([
     listBlogPosts().catch(() => ({ items: [], total: 0 })),
@@ -33,8 +25,11 @@ export default async function BlogPage() {
 
   const textBlock = blogPage?.blocks.find((b) => b.type === "text");
   const hero = { ...FALLBACK_HERO, ...textBlock?.config };
-  const ctaBlock = blogPage?.blocks.find((b) => b.type === "cta");
-  const cta = { ...FALLBACK_CTA, ...ctaBlock?.config };
+
+  // Filter out the "text" block used for the hero — remaining blocks
+  // (e.g. cta, or any future CMS blocks) render dynamically.
+  const remainingBlocks =
+    blogPage?.blocks.filter((b) => b.type !== "text") ?? [];
 
   return (
     <>
@@ -44,13 +39,9 @@ export default async function BlogPage() {
         crumbs={[{ label: "Home", href: "/" }, { label: "Blog" }]}
       />
       <BlogGrid posts={posts} />
-      <CTA
-        title={cta.heading}
-        description={cta.description}
-        primaryLabel={cta.button_label}
-        primaryHref={cta.button_href}
-        showPhoneLink={false}
-      />
+      {remainingBlocks.length > 0 && (
+        <CmsBlockRenderer blocks={remainingBlocks} />
+      )}
     </>
   );
 }
