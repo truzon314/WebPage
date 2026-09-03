@@ -27,15 +27,16 @@ function fontSizeForZoom(zoom: number): number {
 
 // Centroid of a feature's geometry, for placing an on-map text label.
 // Points return their own coordinate; polygons average their outer ring.
-function centroidOf(geometry: { type: string; coordinates?: any } | null | undefined): L.LatLngExpression | null {
+function centroidOf(geometry: { type: string; coordinates?: unknown } | null | undefined): L.LatLngExpression | null {
   if (!geometry) return null;
   if (geometry.type === "Point") {
-    const [lng, lat] = geometry.coordinates;
+    const coords = geometry.coordinates as [number, number];
+    const [lng, lat] = coords;
     return [lat, lng];
   }
   let ring: number[][] | undefined;
-  if (geometry.type === "Polygon") ring = geometry.coordinates[0];
-  else if (geometry.type === "MultiPolygon") ring = geometry.coordinates[0]?.[0];
+  if (geometry.type === "Polygon") ring = (geometry.coordinates as number[][][])?.[0];
+  else if (geometry.type === "MultiPolygon") ring = (geometry.coordinates as number[][][][])?.[0]?.[0];
   if (!ring || ring.length === 0) return null;
   let sumLat = 0;
   let sumLng = 0;

@@ -20,7 +20,7 @@ export interface CmsBlock {
   id: string;
   type: string;
   position: number;
-  config: Record<string, any>;
+  config: Record<string, unknown>;
 }
 
 export interface CmsPage {

@@ -21,6 +21,8 @@ export interface HeroSlide {
   // shot often composes badly stretched to a portrait phone screen. Falls
   // back to imageUrl, then the bundled default, when unset.
   mobileImageUrl?: string;
+  /** Text alignment for the heading & subheading. Defaults to "left". */
+  alignment?: "left" | "center" | "right";
 }
 
 interface HeroProps {
@@ -119,6 +121,8 @@ export function Hero({ slides, buttonLabel, buttonHref, propertyTypes }: HeroPro
         size="wide"
         className="relative z-10 pt-[calc(220px+env(safe-area-inset-top))] pb-24 sm:pt-[260px] lg:pt-[210px]"
       >
+        {/* Alignment: left → justify-start, center → justify-center, right → justify-end
+            for the outer row (so the enquiry form always stays at the end). */}
         <div className="flex flex-col flex-wrap items-start justify-between gap-10 md:flex-row">
           <AnimatePresence mode="wait">
             <motion.div
@@ -127,15 +131,32 @@ export function Hero({ slides, buttonLabel, buttonHref, propertyTypes }: HeroPro
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0 }}
               transition={{ duration: 0.5 }}
-              className="max-w-[600px]"
+              className={cn(
+                "max-w-[600px]",
+                slide.alignment === "center" && "text-center",
+                slide.alignment === "right" && "text-right",
+                (!slide.alignment || slide.alignment === "left") && "text-left"
+              )}
             >
               <h1 className="mb-5 font-heading text-[32px] font-bold leading-[1.12] text-white [text-shadow:0_2px_16px_rgba(0,0,0,0.35)] sm:text-[52px] lg:text-[68px]">
                 {slide.heading}
               </h1>
-              <p className="mb-8 max-w-[480px] text-base leading-[1.7] text-[#c7cedb]">
+              <p
+                className={cn(
+                  "mb-8 max-w-[480px] text-base leading-[1.7] text-[#c7cedb]",
+                  slide.alignment === "center" && "mx-auto",
+                  slide.alignment === "right" && "ml-auto"
+                )}
+              >
                 {slide.subheading}
               </p>
-              <div className="flex flex-wrap gap-3 sm:gap-4">
+              <div
+                className={cn(
+                  "flex flex-wrap gap-3 sm:gap-4",
+                  slide.alignment === "center" && "justify-center",
+                  slide.alignment === "right" && "justify-end"
+                )}
+              >
                 <Button
                   href={buttonHref}
                   variant="gold"

@@ -28,9 +28,27 @@ export function Header({
   const isHome = pathname === "/";
   const isSolid = !isHome || scrolled;
 
-  useEffect(() => {
+  const isActiveLink = (href: string) => {
+    if (href === "/") {
+      return pathname === "/";
+    }
+
+    if (href === "/projects") {
+      return (
+        pathname === "/projects" ||
+        pathname.startsWith("/projects/") ||
+        pathname.startsWith("/property/")
+      );
+    }
+
+    return pathname.startsWith(href);
+  };
+
+  const [prevPathname, setPrevPathname] = useState(pathname);
+  if (prevPathname !== pathname) {
+    setPrevPathname(pathname);
     setMobileMenuOpen(false);
-  }, [pathname]);
+  }
 
   useEffect(() => {
     function onClick(e: MouseEvent) {
@@ -74,7 +92,7 @@ export function Header({
     <header
       ref={headerRef}
       className={cn(
-        "fixed inset-x-0 top-0 z-[100] border-b border-navy-900/8 pt-[env(safe-area-inset-top)] shadow-sm backdrop-blur-md transition-[background,backdrop-filter,border-color,padding] duration-300",
+        "fixed inset-x-0 top-0 z-[1000] border-b border-navy-900/8 pt-[env(safe-area-inset-top)] shadow-sm backdrop-blur-md transition-[background,backdrop-filter,border-color,padding] duration-300",
         headerBg,
         !isHome && "lg:sticky",
         !isSolid &&
@@ -122,10 +140,7 @@ export function Header({
             className="hidden flex-wrap items-center justify-center gap-9 lg:flex"
           >
             {mainNav.map((link) => {
-              const active =
-                link.href === "/"
-                  ? pathname === "/"
-                  : pathname.startsWith(link.href);
+              const active = isActiveLink(link.href);
 
               return (
                 <Link
@@ -194,13 +209,10 @@ export function Header({
             <nav
               id="mobile-primary-nav"
               aria-label="Mobile primary"
-              className="flex flex-col border-t border-[#1E2038]/10 bg-[#FAF9F2] backdrop-blur-md"
+              className="flex flex-col border-t border-[#1E2038]/10 bg-[#FFFAFA] backdrop-blur-md"
             >
               {mainNav.map((link) => {
-                const active =
-                  link.href === "/"
-                    ? pathname === "/"
-                    : pathname.startsWith(link.href);
+                const active = isActiveLink(link.href);
 
                 return (
                   <Link

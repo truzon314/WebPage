@@ -23,11 +23,11 @@ export function TeamSection({
   }
 
   return (
-    <section className="bg-surface-muted py-16 sm:py-20 lg:py-24">
+    <section className="bg-[#12172b] py-16 sm:py-20 lg:py-24">
       <div className="mx-auto w-full max-w-[1400px] px-6 sm:px-10 lg:px-[60px]">
         {heading ? (
           <div className="mb-10 text-center lg:mb-14">
-            <h2 className="font-heading text-3xl font-bold text-navy-900 sm:text-4xl lg:text-5xl">
+            <h2 className="font-heading text-3xl font-bold text-[#D4A637] sm:text-4xl lg:text-5xl">
               {heading}
             </h2>
           </div>
@@ -40,7 +40,7 @@ export function TeamSection({
             return (
               <article
                 key={`${member.name || "member"}-${index}`}
-                className="overflow-hidden rounded-2xl bg-white shadow-sm"
+                className="overflow-hidden rounded-2xl bg-[#D4A637] shadow-sm"
               >
                 {imageUrl ? (
                   <div className="relative aspect-square w-full overflow-hidden">
@@ -56,19 +56,19 @@ export function TeamSection({
 
                 <div className="p-6">
                   {member.name ? (
-                    <h3 className="font-heading text-xl font-bold text-navy-900">
+                    <h3 className="font-heading text-xl font-bold text-[#12172b]">
                       {member.name}
                     </h3>
                   ) : null}
 
                   {member.role ? (
-                    <p className="mt-1 text-sm font-semibold text-gold-600">
+                    <p className="mt-1 text-sm font-semibold text-[#12172b]/80">
                       {member.role}
                     </p>
                   ) : null}
 
                   {member.bio ? (
-                    <p className="mt-4 text-sm leading-7 text-neutral-600">
+                    <p className="mt-4 text-sm leading-7 text-[#12172b]/75">
                       {member.bio}
                     </p>
                   ) : null}

@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
+import { createContext, useContext, useState, type ReactNode } from "react";
 
 interface FavoritesContextValue {
   isFavorite: (id: string) => boolean;
@@ -20,17 +20,16 @@ const FavoritesContext = createContext<FavoritesContextValue | null>(null);
  * `map_unlock_granted` flag. Backs the /saved-properties page.
  */
 export function FavoritesProvider({ children }: { children: ReactNode }) {
-  const [favorites, setFavorites] = useState<Set<string>>(new Set());
-
-  useEffect(() => {
-    if (typeof window === "undefined") return;
+  const [favorites, setFavorites] = useState<Set<string>>(() => {
+    if (typeof window === "undefined") return new Set();
     try {
       const stored = window.localStorage.getItem(FAVORITES_KEY);
-      if (stored) setFavorites(new Set(JSON.parse(stored)));
+      if (stored) return new Set(JSON.parse(stored));
     } catch {
       // Corrupted localStorage value — ignore, start empty.
     }
-  }, []);
+    return new Set();
+  });
 
   const toggle = (id: string) => {
     setFavorites((prev) => {

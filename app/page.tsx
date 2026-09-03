@@ -78,16 +78,21 @@ export default async function Home() {
   const testimonials = cmsTestimonials.map(toTestimonial);
 
   const heroBlock = homePage?.blocks.find((b) => b.type === "hero_banner");
-  const hero = { ...FALLBACK_HERO, ...heroBlock?.config };
+  const hero = { ...FALLBACK_HERO, ...(heroBlock?.config as Partial<typeof FALLBACK_HERO> | undefined) };
   const heroSlides: HeroSlide[] = (hero.slides.length > 0 ? hero.slides : FALLBACK_HERO.slides).map((s) => ({
     heading: s.heading,
     subheading: s.subheading,
     imageUrl: s.image_url || undefined,
     mobileImageUrl: s.mobile_image_url || undefined,
+    // `s` is a merged CMS payload (Record<string, unknown> from block.config spread)
+    // so `.alignment` exists at runtime even though FALLBACK_HERO's literal type
+    // doesn't declare it. Cast through unknown to satisfy the compiler.
+    alignment: (s as Record<string, unknown>).alignment as HeroSlide["alignment"] | undefined,
   }));
   const faqBlock = homePage?.blocks.find((b) => b.type === "faq");
+  const faqConfig = faqBlock?.config as { heading?: string; items?: FaqItem[] } | undefined;
   const ctaBlock = homePage?.blocks.find((b) => b.type === "cta");
-  const cta = { ...FALLBACK_CTA, ...ctaBlock?.config };
+  const cta = { ...FALLBACK_CTA, ...(ctaBlock?.config as Partial<typeof FALLBACK_CTA> | undefined) };
 
   return (
     <>
@@ -105,7 +110,7 @@ export default async function Home() {
       <Stats />
       <Testimonials testimonials={testimonials} />
       <LatestInsights posts={posts} />
-      <FAQ heading={faqBlock?.config.heading} items={faqBlock?.config.items as FaqItem[] | undefined} />
+      <FAQ heading={faqConfig?.heading} items={faqConfig?.items} />
       <CTA
         title={cta.heading}
         description={cta.description}

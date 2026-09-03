@@ -29,7 +29,7 @@ type BlockAdapter = (block: CmsBlock) => JSX.Element;
 
 function renderTextBlock(block: CmsBlock): JSX.Element {
   const { heading, body, image_url, featured_image_url, image } =
-    block.config;
+    block.config as Record<string, string | undefined>;
 
   const paragraphs: string[] | undefined = body
     ?.split("\n\n")
@@ -44,13 +44,14 @@ function renderTextBlock(block: CmsBlock): JSX.Element {
 }
 
 function renderTeamBlock(block: CmsBlock): JSX.Element {
+  const config = block.config as { heading?: string; members?: Parameters<typeof TeamSection>[0]["members"] };
   return (
-    <TeamSection heading={block.config.heading} members={block.config.members} />
+    <TeamSection heading={config.heading} members={config.members} />
   );
 }
 
 function renderCtaBlock(block: CmsBlock): JSX.Element {
-  const cta = { ...CTA_FALLBACK, ...block.config };
+  const cta = { ...CTA_FALLBACK, ...(block.config as Partial<typeof CTA_FALLBACK>) };
   return (
     <CTA
       title={cta.heading}
@@ -63,10 +64,11 @@ function renderCtaBlock(block: CmsBlock): JSX.Element {
 }
 
 function renderFaqBlock(block: CmsBlock): JSX.Element {
+  const config = block.config as { heading?: string; items?: FaqItem[] };
   return (
     <FAQ
-      heading={block.config.heading}
-      items={block.config.items as FaqItem[] | undefined}
+      heading={config.heading}
+      items={config.items}
     />
   );
 }

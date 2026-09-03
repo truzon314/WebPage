@@ -1,9 +1,8 @@
 import type { Metadata } from "next";
-import Image from "next/image";
-import mapPhoto from "@/public/images/placeholders/contact-map-photo.png";
 import { PageHero } from "@/modules/content/PageHero";
 import { ContactInfoCards } from "@/modules/leads/ContactInfoCards";
 import { ContactForm } from "@/modules/leads/ContactForm";
+import { ContactMap } from "@/modules/leads/ContactMap";
 import { Container } from "@/components/ui/Container";
 import { getPage, getSettings } from "@/modules/content/api";
 import { listCategories } from "@/modules/properties/api";
@@ -31,6 +30,7 @@ export default async function ContactPage() {
     listCategories("property").catch(() => []),
   ]);
   const formBlock = contactPage?.blocks.find((b) => b.type === "contact_form");
+  const formConfig = formBlock?.config as { heading?: string; description?: string } | undefined;
 
   return (
     <>
@@ -43,19 +43,11 @@ export default async function ContactPage() {
       <section className="pb-16 lg:pb-[90px]">
         <Container className="grid grid-cols-1 gap-8 lg:grid-cols-2 lg:gap-10">
           <ContactForm
-            heading={formBlock?.config.heading}
-            description={formBlock?.config.description}
+            heading={formConfig?.heading}
+            description={formConfig?.description}
             types={propertyTypes.map((t) => t.name)}
           />
-          <div className="relative h-[300px] w-full overflow-hidden rounded-[10px] lg:h-full lg:min-h-[420px]">
-            <Image
-              src={settings?.contact_map_image_url || mapPhoto}
-              alt="Truzon Homes corporate office location"
-              fill
-              sizes="(min-width: 1024px) 45vw, 100vw"
-              className="object-cover"
-            />
-          </div>
+          <ContactMap />
         </Container>
       </section>
     </>

@@ -18,7 +18,10 @@ const POLL_MS = 4_000;
 export function LiveChatWidget() {
   const { mapInView } = useFloatingWidgets();
   const [open, setOpen] = useState(false);
-  const [conversationId, setConversationId] = useState<string | null>(null);
+  const [conversationId, setConversationId] = useState<string | null>(() => {
+    if (typeof window === "undefined") return null;
+    return window.localStorage.getItem(CONVERSATION_ID_KEY);
+  });
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
   const [sending, setSending] = useState(false);
@@ -26,7 +29,20 @@ export function LiveChatWidget() {
   const [contactPhone, setContactPhone] = useState("");
   const [contactEmail, setContactEmail] = useState("");
   const [contactError, setContactError] = useState("");
-  const [knownContact, setKnownContact] = useState<VisitorContact | null>(null);
+  const [knownContact, setKnownContact] = useState<VisitorContact | null>(() => {
+    if (typeof window === "undefined") return null;
+    return getStoredVisitorContact();
+  });
+  const [prevOpen, setPrevOpen] = useState(open);
+  if (prevOpen !== open) {
+    setPrevOpen(open);
+    if (open) {
+      const latestContact = getStoredVisitorContact();
+      if (latestContact !== knownContact) {
+        setKnownContact(latestContact);
+      }
+    }
+  }
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // No stored conversation yet AND no contact details captured elsewhere
@@ -35,21 +51,6 @@ export function LiveChatWidget() {
   // alongside their first message. A visitor who already gave their
   // details somewhere else on the site skips straight to chatting.
   const needsContactForm = !conversationId && !knownContact;
-
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    const stored = window.localStorage.getItem(CONVERSATION_ID_KEY);
-    if (stored) setConversationId(stored);
-    setKnownContact(getStoredVisitorContact());
-  }, []);
-
-  // The widget stays mounted for the whole session, so a visitor who
-  // unlocks a property's site layout (and gets identified) *after* first
-  // load needs a fresh read here — otherwise re-opening chat would still
-  // show the now-redundant pre-chat form.
-  useEffect(() => {
-    if (open) setKnownContact(getStoredVisitorContact());
-  }, [open]);
 
   useEffect(() => {
     if (!open || !conversationId) return;

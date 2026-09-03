@@ -73,7 +73,7 @@ export function PropertySearchProvider({
     // first 3 as-is keeps this section identical to the top of /projects,
     // rather than reordering by the (separate) `is_signature` flag.
     return properties.slice(0, DEFAULT_SIGNATURE_COUNT);
-  }, [searchActive, properties]);
+  }, [searchActive, properties, filters]);
 
   const resultLabel = searchActive
     ? `${results.length} ${results.length === 1 ? "Match" : "Matches"} Found`

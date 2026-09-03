@@ -1,4 +1,4 @@
-import { cmsFetch, type ApiEnvelope } from "@/lib/cms-client";
+import { cmsFetch } from "@/lib/cms-client";
 import type { ChatMessage, ChatMessageSender } from "@/modules/chat/types";
 
 interface WireChatMessage {
