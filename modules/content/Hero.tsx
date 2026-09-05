@@ -78,11 +78,13 @@ export function Hero({ slides, buttonLabel, buttonHref, propertyTypes }: HeroPro
         const { props: desktopImg } = getImageProps({
           ...common,
           src: desktopSrc,
+          priority: i === 0,
         });
 
         const { props: mobileImg } = getImageProps({
           ...common,
           src: mobileSrc,
+          priority: i === 0,
           loading: i === 0 ? "eager" : "lazy",
         });
 
@@ -95,7 +97,7 @@ export function Hero({ slides, buttonLabel, buttonHref, propertyTypes }: HeroPro
           >
             <motion.div
               className="absolute inset-0"
-              animate={{ scale: i === index ? 1.08 : 1 }}
+              animate={i === index ? { scale: 1.08 } : { scale: 1 }}
               transition={{ duration: 6, ease: "easeOut" }}
             >
               <picture>
@@ -104,10 +106,12 @@ export function Hero({ slides, buttonLabel, buttonHref, propertyTypes }: HeroPro
                   srcSet={desktopImg.srcSet}
                   sizes={desktopImg.sizes}
                 />
-                {/* alt already flows through {...mobileImg} (from getImageProps'
-                    `common.alt`), but the a11y linter can't see through the
-                    spread — repeated explicitly so both are satisfied. */}
-                <img {...mobileImg} alt="" className="object-cover" />
+                <img
+                  {...mobileImg}
+                  alt=""
+                  fetchPriority={i === 0 ? "high" : "auto"}
+                  className="object-cover"
+                />
               </picture>
             </motion.div>
           </div>

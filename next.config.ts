@@ -43,8 +43,17 @@ const nextConfig: NextConfig = {
 },
 
   async rewrites() {
-  return [];
-},
+    const cmsUrl =
+      process.env.INTERNAL_CMS_URL ??
+      process.env.NEXT_PUBLIC_CMS_URL ??
+      "http://localhost:8000";
+    return [
+      {
+        source: "/media-files/:path*",
+        destination: `${cmsUrl}/media-files/:path*`,
+      },
+    ];
+  },
 
   async headers() {
     return [
