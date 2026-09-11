@@ -119,23 +119,29 @@ async function getNavData() {
       getSettings(),
     ]);
 
+    const parsedNav = headerMenu && headerMenu.items && headerMenu.items.length > 0
+      ? toNavLinks(headerMenu.items)
+      : [];
+
     return {
-      mainNav: headerMenu
-        ? toNavLinks(headerMenu.items)
-        : MAIN_NAV,
+      mainNav: parsedNav.length > 0 ? parsedNav : MAIN_NAV,
 
       footerColumns: [
-        footerCompany &&
-          toFooterColumn("Company", footerCompany.items),
+        footerCompany && footerCompany.items && footerCompany.items.length > 0
+          ? toFooterColumn("Company", footerCompany.items)
+          : null,
 
-        footerProperties &&
-          toFooterColumn("Properties", footerProperties.items),
+        footerProperties && footerProperties.items && footerProperties.items.length > 0
+          ? toFooterColumn("Properties", footerProperties.items)
+          : null,
 
-        footerResources &&
-          toFooterColumn("Resources", footerResources.items),
+        footerResources && footerResources.items && footerResources.items.length > 0
+          ? toFooterColumn("Resources", footerResources.items)
+          : null,
 
-        footerLegal &&
-          toFooterColumn("Legal", footerLegal.items),
+        footerLegal && footerLegal.items && footerLegal.items.length > 0
+          ? toFooterColumn("Legal", footerLegal.items)
+          : null,
       ].filter(
         (c): c is FooterLinkColumn => c !== null,
       ),
