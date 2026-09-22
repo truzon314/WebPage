@@ -25,6 +25,30 @@ export function Header({
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const headerRef = useRef<HTMLElement>(null);
 
+  // Scroll direction state for header visibility:
+  // "when i scrool up the header should be hidden. and when i scrool down it should be visible."
+  const [headerVisible, setHeaderVisible] = useState(true);
+  const lastScrollY = useRef(0);
+
+  useEffect(() => {
+    function handleScroll() {
+      const currentScrollY = window.scrollY;
+      if (currentScrollY <= 50) {
+        setHeaderVisible(true);
+      } else if (currentScrollY > lastScrollY.current + 5) {
+        // Scrolling down -> show header
+        setHeaderVisible(true);
+      } else if (currentScrollY < lastScrollY.current - 5) {
+        // Scrolling up -> hide header
+        setHeaderVisible(false);
+      }
+      lastScrollY.current = currentScrollY;
+    }
+
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
+
   const isHome = pathname === "/";
   const isSolid = !isHome || scrolled;
 
@@ -92,11 +116,13 @@ export function Header({
     <header
       ref={headerRef}
       className={cn(
-        "fixed inset-x-0 top-0 z-[1000] border-b border-navy-900/8 pt-[env(safe-area-inset-top)] shadow-sm backdrop-blur-md transition-[background,backdrop-filter,border-color,padding] duration-300",
+        "fixed inset-x-0 top-0 z-[1000] border-b border-navy-900/8 pt-[env(safe-area-inset-top)] shadow-sm backdrop-blur-md transition-all duration-300 ease-in-out",
         headerBg,
-        !isHome && "lg:sticky",
         !isSolid &&
           "lg:border-transparent lg:shadow-none lg:backdrop-blur-none",
+        headerVisible
+          ? "translate-y-0 opacity-100"
+          : "-translate-y-full opacity-0 pointer-events-none"
       )}
     >
       <Container size="wide">

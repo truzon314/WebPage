@@ -60,15 +60,19 @@ export function PropertyCard({ property }: { property: Property }) {
             sizes="(min-width: 1024px) 33vw, 100vw"
             className="object-cover"
           />
-          <span
-            className="absolute left-3.5 top-3.5 rounded-[3px] px-3 py-1.5 text-[10.5px] font-bold tracking-[0.4px]"
-            style={{ background: property.tagBg, color: property.tagColor }}
-          >
-            {property.tagText}
-          </span>
-          <span className="absolute right-3.5 top-3.5 rounded-[3px] bg-white px-3 py-1.5 text-[10.5px] font-bold text-navy-900">
-            {property.statusText}
-          </span>
+          {property.tagText && (
+            <span
+              className="absolute left-3.5 top-3.5 rounded-[3px] px-3 py-1.5 text-[10.5px] font-bold tracking-[0.4px]"
+              style={{ background: property.tagBg, color: property.tagColor }}
+            >
+              {property.tagText}
+            </span>
+          )}
+          {property.statusText && (
+            <span className="absolute right-3.5 top-3.5 rounded-[3px] bg-white px-3 py-1.5 text-[10.5px] font-bold text-navy-900">
+              {property.statusText}
+            </span>
+          )}
           <div className="absolute bottom-3 right-3 flex items-center gap-2">
             <button
               type="button"
@@ -100,20 +104,28 @@ export function PropertyCard({ property }: { property: Property }) {
 
         <div className="px-[22px] pb-6 pt-5">
           <div className="mb-1.5 font-heading text-[19px] font-bold text-navy-900">{property.name}</div>
-          <div className="mb-3.5 flex items-center gap-1.5 text-[13px] text-text-muted">
-            <MapPin size={13} strokeWidth={2} />
-            {property.location}
-          </div>
-          <div className="mb-4 flex gap-4 border-b border-divider pb-4 text-[12.5px] text-text-strong">
-            <span className="flex items-center gap-1.5">
-              <BedDouble size={13} strokeWidth={2} />
-              {property.specA}
-            </span>
-            <span className="flex items-center gap-1.5">
-              <Ruler size={13} strokeWidth={2} />
-              {property.specB}
-            </span>
-          </div>
+          {property.location && (
+            <div className="mb-3.5 flex items-center gap-1.5 text-[13px] text-text-muted">
+              <MapPin size={13} strokeWidth={2} />
+              {property.location}
+            </div>
+          )}
+          {(property.specA || property.specB) && (
+            <div className="mb-4 flex gap-4 border-b border-divider pb-4 text-[12.5px] text-text-strong">
+              {property.specA && (
+                <span className="flex items-center gap-1.5">
+                  <BedDouble size={13} strokeWidth={2} />
+                  {property.specA}
+                </span>
+              )}
+              {property.specB && (
+                <span className="flex items-center gap-1.5">
+                  <Ruler size={13} strokeWidth={2} />
+                  {property.specB}
+                </span>
+              )}
+            </div>
+          )}
           <div className="flex items-center justify-between">
             <span className="font-heading text-[19px] font-bold text-navy-900">{property.price}</span>
             <span className="rounded-[5px] border-[1.5px] border-navy-800 px-[18px] py-[9px] text-xs font-semibold text-navy-800">

@@ -236,7 +236,7 @@ export function PropertyDetailView({ property }: PropertyDetailViewProps) {
   const whatsappUrl = `https://wa.me/${(property.phone || "").replace(/[^0-9]/g, "") || "919000012345"}?text=${whatsappMessage}`;
 
   return (
-    <div className="min-h-screen bg-surface-subtle/30 text-text-strong">
+    <div className="min-h-screen bg-surface-subtle/30 text-text-strong pb-24 sm:pb-28">
       {/* ─────────────────────────────────────────────────────────────────────
           SECTION 1 — FULL-SCREEN CINEMATIC HERO (90-100vh)
           ───────────────────────────────────────────────────────────────────── */}
@@ -274,12 +274,12 @@ export function PropertyDetailView({ property }: PropertyDetailViewProps) {
         <div className="absolute top-6 left-0 right-0 z-20">
           <Container>
             <div className="flex items-center justify-between text-xs text-white/80 font-medium">
-              <div className="flex items-center gap-2 backdrop-blur-md bg-black/30 px-4 py-2 rounded-full border border-white/10">
+              <div className="flex items-center gap-2 backdrop-blur-md bg-black/30 px-3.5 sm:px-4 py-2 rounded-full border border-white/10 text-[11px] sm:text-xs">
                 <Link href="/" className="hover:text-amber-400 transition-colors">Home</Link>
                 <span>/</span>
                 <Link href="/projects" className="hover:text-amber-400 transition-colors">Projects</Link>
                 <span>/</span>
-                <span className="text-white font-semibold">{property.name}</span>
+                <span className="text-white font-semibold truncate max-w-[140px] sm:max-w-none">{property.name}</span>
               </div>
 
               <div className="flex items-center gap-2">
@@ -289,7 +289,7 @@ export function PropertyDetailView({ property }: PropertyDetailViewProps) {
                   className="flex items-center gap-1.5 backdrop-blur-md bg-black/40 hover:bg-black/60 text-white px-3.5 py-2 rounded-full border border-white/15 transition-all cursor-pointer"
                 >
                   <Share2 size={14} />
-                  <span>Share</span>
+                  <span className="hidden sm:inline">Share</span>
                   {copied && <span className="text-[11px] text-emerald-400 font-bold ml-1">Copied!</span>}
                 </button>
                 <button
@@ -298,7 +298,7 @@ export function PropertyDetailView({ property }: PropertyDetailViewProps) {
                   className="flex items-center gap-1.5 backdrop-blur-md bg-black/40 hover:bg-black/60 text-white px-3.5 py-2 rounded-full border border-white/15 transition-all cursor-pointer"
                 >
                   <Heart size={14} className={saved ? "fill-red-500 text-red-500" : ""} />
-                  <span>{saved ? "Saved" : "Save"}</span>
+                  <span className="hidden sm:inline">{saved ? "Saved" : "Save"}</span>
                 </button>
               </div>
             </div>
@@ -309,29 +309,37 @@ export function PropertyDetailView({ property }: PropertyDetailViewProps) {
         <div className="absolute inset-0 z-10 flex items-end pb-16 md:pb-24">
           <Container>
             <div className="max-w-3xl text-white">
-              <div className="mb-3 flex flex-wrap items-center gap-2">
-                <span className="rounded-full bg-amber-500/90 text-navy-950 px-3.5 py-1 text-xs font-bold uppercase tracking-wider backdrop-blur-sm">
-                  {property.tagText || "LUXURY SHOWROOM"}
-                </span>
-                <span className="rounded-full bg-white/20 text-white px-3.5 py-1 text-xs font-semibold backdrop-blur-sm">
-                  {property.statusText || property.approvalInfo}
-                </span>
-              </div>
+              {(property.tagText || property.statusText || property.approvalInfo) && (
+                <div className="mb-3 flex flex-wrap items-center gap-2">
+                  {property.tagText && (
+                    <span className="rounded-full bg-amber-500/90 text-navy-950 px-3.5 py-1 text-xs font-bold uppercase tracking-wider backdrop-blur-sm">
+                      {property.tagText}
+                    </span>
+                  )}
+                  {(property.statusText || property.approvalInfo) && (
+                    <span className="rounded-full bg-white/20 text-white px-3.5 py-1 text-xs font-semibold backdrop-blur-sm">
+                      {property.statusText || property.approvalInfo}
+                    </span>
+                  )}
+                </div>
+              )}
 
-              <h1 className="font-heading text-4xl sm:text-5xl md:text-6xl font-extrabold tracking-tight mb-4 text-white leading-tight">
+              <h1 className="font-heading text-3xl sm:text-5xl md:text-6xl font-extrabold tracking-tight mb-4 text-white leading-tight">
                 {property.heroHeading || property.name}
               </h1>
 
-              <p className="text-base sm:text-lg text-white/90 font-normal mb-6 max-w-2xl flex items-center gap-2">
-                <MapPin size={18} className="text-amber-400 shrink-0" />
-                {property.heroSubheading || property.location}
-              </p>
+              {(property.heroSubheading || property.location) && (
+                <p className="text-base sm:text-lg text-white/90 font-normal mb-6 max-w-2xl flex items-center gap-2">
+                  <MapPin size={18} className="text-amber-400 shrink-0" />
+                  {property.heroSubheading || property.location}
+                </p>
+              )}
 
-              <div className="flex flex-wrap items-center gap-4 pt-2">
+              <div className="flex flex-col sm:flex-row flex-wrap items-stretch sm:items-center gap-3.5 pt-2">
                 <button
                   type="button"
                   onClick={() => handleOpenModal("tour")}
-                  className="rounded-xl bg-amber-500 hover:bg-amber-400 text-navy-950 px-7 py-3.5 text-sm font-bold shadow-lg transition-all transform hover:-translate-y-0.5 cursor-pointer"
+                  className="rounded-xl bg-amber-500 hover:bg-amber-400 text-navy-950 px-7 py-3.5 text-sm font-bold shadow-lg transition-all transform hover:-translate-y-0.5 cursor-pointer text-center"
                 >
                   SCHEDULE A SITE VISIT
                 </button>
@@ -340,7 +348,7 @@ export function PropertyDetailView({ property }: PropertyDetailViewProps) {
                   <button
                     type="button"
                     onClick={() => handleOpenModal("brochure")}
-                    className="flex items-center gap-2 rounded-xl backdrop-blur-md bg-white/15 hover:bg-white/25 text-white border border-white/30 px-6 py-3.5 text-sm font-semibold transition-all cursor-pointer"
+                    className="flex items-center justify-center gap-2 rounded-xl backdrop-blur-md bg-white/15 hover:bg-white/25 text-white border border-white/30 px-6 py-3.5 text-sm font-semibold transition-all cursor-pointer"
                   >
                     <Download size={16} />
                     <span>DOWNLOAD BROCHURE</span>
@@ -351,7 +359,7 @@ export function PropertyDetailView({ property }: PropertyDetailViewProps) {
                   href={whatsappUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex items-center gap-2 rounded-xl backdrop-blur-md bg-emerald-600/90 hover:bg-emerald-500 text-white px-6 py-3.5 text-sm font-semibold transition-all cursor-pointer"
+                  className="flex items-center justify-center gap-2 rounded-xl backdrop-blur-md bg-emerald-600/90 hover:bg-emerald-500 text-white px-6 py-3.5 text-sm font-semibold transition-all cursor-pointer"
                 >
                   <MessageSquare size={16} />
                   <span>WHATSAPP US</span>
@@ -369,15 +377,19 @@ export function PropertyDetailView({ property }: PropertyDetailViewProps) {
         <Container>
           <div className="flex items-center justify-between gap-4">
             <div className="hidden lg:flex items-center gap-6">
-              <div>
-                <span className="block text-[10px] uppercase font-bold text-amber-400 tracking-wider">Project Price</span>
-                <span className="font-heading text-lg font-bold">{property.price || "On Request"}</span>
-              </div>
-              <div className="h-8 w-px bg-white/15" />
-              <div>
-                <span className="block text-[10px] uppercase font-bold text-white/60 tracking-wider">Location</span>
-                <span className="text-xs font-semibold text-white/90">{property.location}</span>
-              </div>
+              {property.price && (
+                <div>
+                  <span className="block text-[10px] uppercase font-bold text-amber-400 tracking-wider">Project Price</span>
+                  <span className="font-heading text-lg font-bold">{property.price}</span>
+                </div>
+              )}
+              {property.price && property.location && <div className="h-8 w-px bg-white/15" />}
+              {property.location && (
+                <div>
+                  <span className="block text-[10px] uppercase font-bold text-white/60 tracking-wider">Location</span>
+                  <span className="text-xs font-semibold text-white/90">{property.location}</span>
+                </div>
+              )}
             </div>
 
             <div className="flex items-center justify-between w-full lg:w-auto gap-2.5">
@@ -385,24 +397,26 @@ export function PropertyDetailView({ property }: PropertyDetailViewProps) {
                 href={whatsappUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex-1 lg:flex-none flex items-center justify-center gap-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-2.5 text-xs font-bold transition-all cursor-pointer"
+                className="flex-1 lg:flex-none flex items-center justify-center gap-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white px-3.5 sm:px-4 py-2.5 text-xs font-bold transition-all cursor-pointer"
               >
                 <MessageSquare size={15} />
                 <span>WhatsApp</span>
               </a>
 
-              <a
-                href={`tel:${property.phone}`}
-                className="flex-1 lg:flex-none flex items-center justify-center gap-2 rounded-xl bg-white/15 hover:bg-white/25 text-white border border-white/20 px-4 py-2.5 text-xs font-bold transition-all cursor-pointer"
-              >
-                <PhoneCall size={15} />
-                <span>Call Now</span>
-              </a>
+              {property.phone && (
+                <a
+                  href={`tel:${property.phone}`}
+                  className="flex-1 lg:flex-none flex items-center justify-center gap-2 rounded-xl bg-white/15 hover:bg-white/25 text-white border border-white/20 px-3.5 sm:px-4 py-2.5 text-xs font-bold transition-all cursor-pointer"
+                >
+                  <PhoneCall size={15} />
+                  <span>Call Now</span>
+                </a>
+              )}
 
               <button
                 type="button"
                 onClick={() => handleOpenModal("tour")}
-                className="flex-1 lg:flex-none flex items-center justify-center gap-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-navy-950 px-5 py-2.5 text-xs font-bold transition-all cursor-pointer"
+                className="flex-1 lg:flex-none flex items-center justify-center gap-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-navy-950 px-4 sm:px-5 py-2.5 text-xs font-bold transition-all cursor-pointer"
               >
                 <CalendarClock size={15} />
                 <span>Book Site Visit</span>
@@ -424,41 +438,53 @@ export function PropertyDetailView({ property }: PropertyDetailViewProps) {
             <h2 className="font-heading text-3xl sm:text-4xl md:text-5xl font-bold text-navy-950 mb-6 leading-tight">
               {property.heroHeading || property.name}
             </h2>
-            <p className="text-base sm:text-lg text-text-body leading-relaxed font-normal">
-              {property.description}
-            </p>
+            {property.description && (
+              <p className="text-base sm:text-lg text-text-body leading-relaxed font-normal">
+                {property.description}
+              </p>
+            )}
           </div>
 
-          {/* High Impact Numbers Grid */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
-            <div className="rounded-2xl bg-surface-subtle p-6 text-center border border-divider/60">
-              <span className="block text-2xl sm:text-3xl md:text-4xl font-extrabold text-navy-950 mb-1">
-                {property.specA || "4 BHK"}
-              </span>
-              <span className="text-xs font-bold text-text-muted uppercase tracking-wider">Configuration</span>
-            </div>
+          {/* High Impact Numbers Grid (rendered only for fields with values) */}
+          {(property.specA || property.specB || property.price || property.possessionDate) && (
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
+              {property.specA && (
+                <div className="rounded-2xl bg-surface-subtle p-6 text-center border border-divider/60">
+                  <span className="block text-2xl sm:text-3xl md:text-4xl font-extrabold text-navy-950 mb-1">
+                    {property.specA}
+                  </span>
+                  <span className="text-xs font-bold text-text-muted uppercase tracking-wider">Configuration</span>
+                </div>
+              )}
 
-            <div className="rounded-2xl bg-surface-subtle p-6 text-center border border-divider/60">
-              <span className="block text-2xl sm:text-3xl md:text-4xl font-extrabold text-navy-950 mb-1">
-                {property.specB || "3,500 Sq.Ft"}
-              </span>
-              <span className="text-xs font-bold text-text-muted uppercase tracking-wider">Area / Plot Size</span>
-            </div>
+              {property.specB && (
+                <div className="rounded-2xl bg-surface-subtle p-6 text-center border border-divider/60">
+                  <span className="block text-2xl sm:text-3xl md:text-4xl font-extrabold text-navy-950 mb-1">
+                    {property.specB}
+                  </span>
+                  <span className="text-xs font-bold text-text-muted uppercase tracking-wider">Area / Plot Size</span>
+                </div>
+              )}
 
-            <div className="rounded-2xl bg-surface-subtle p-6 text-center border border-divider/60">
-              <span className="block text-2xl sm:text-3xl md:text-4xl font-extrabold text-amber-600 mb-1">
-                {property.price || "On Request"}
-              </span>
-              <span className="text-xs font-bold text-text-muted uppercase tracking-wider">Starting Price</span>
-            </div>
+              {property.price && (
+                <div className="rounded-2xl bg-surface-subtle p-6 text-center border border-divider/60">
+                  <span className="block text-2xl sm:text-3xl md:text-4xl font-extrabold text-amber-600 mb-1">
+                    {property.price}
+                  </span>
+                  <span className="text-xs font-bold text-text-muted uppercase tracking-wider">Starting Price</span>
+                </div>
+              )}
 
-            <div className="rounded-2xl bg-surface-subtle p-6 text-center border border-divider/60">
-              <span className="block text-2xl sm:text-3xl md:text-4xl font-extrabold text-navy-950 mb-1">
-                {property.possessionDate || "Ready"}
-              </span>
-              <span className="text-xs font-bold text-text-muted uppercase tracking-wider">Possession</span>
+              {property.possessionDate && (
+                <div className="rounded-2xl bg-surface-subtle p-6 text-center border border-divider/60">
+                  <span className="block text-2xl sm:text-3xl md:text-4xl font-extrabold text-navy-950 mb-1">
+                    {property.possessionDate}
+                  </span>
+                  <span className="text-xs font-bold text-text-muted uppercase tracking-wider">Possession</span>
+                </div>
+              )}
             </div>
-          </div>
+          )}
         </Container>
       </section>
 
@@ -469,12 +495,14 @@ export function PropertyDetailView({ property }: PropertyDetailViewProps) {
         <section className="py-12 bg-navy-950 text-white">
           <Container>
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4 text-center">
-              {property.highlights.map((h, idx) => (
-                <div key={idx} className="p-4 rounded-xl bg-white/5 border border-white/10">
-                  <span className="block text-2xl font-extrabold text-amber-400 mb-1">{h.value}</span>
-                  <span className="text-xs font-semibold text-white/80">{h.label}</span>
-                </div>
-              ))}
+              {property.highlights
+                .filter((h) => h.label || h.value)
+                .map((h, idx) => (
+                  <div key={idx} className="p-4 rounded-xl bg-white/5 border border-white/10">
+                    {h.value && <span className="block text-2xl font-extrabold text-amber-400 mb-1">{h.value}</span>}
+                    {h.label && <span className="text-xs font-semibold text-white/80">{h.label}</span>}
+                  </div>
+                ))}
             </div>
           </Container>
         </section>
@@ -507,7 +535,7 @@ export function PropertyDetailView({ property }: PropertyDetailViewProps) {
                 >
                   <div className="relative h-60 w-full">
                     {vid.posterImageUrl ? (
-                      <Image src={vid.posterImageUrl} alt={vid.title} fill className="object-cover opacity-80 group-hover:scale-105 transition-transform duration-500" />
+                      <Image src={vid.posterImageUrl} alt={vid.title || "Video tour"} fill className="object-cover opacity-80 group-hover:scale-105 transition-transform duration-500" />
                     ) : (
                       <div className="h-full w-full bg-navy-900 flex items-center justify-center">
                         <Play size={40} className="text-amber-400" />
@@ -521,13 +549,17 @@ export function PropertyDetailView({ property }: PropertyDetailViewProps) {
                       </div>
                     </div>
 
-                    <div className="absolute top-3 left-3 rounded-md bg-black/60 px-3 py-1 text-[11px] font-bold text-white uppercase tracking-wider backdrop-blur-sm">
-                      {vid.category}
-                    </div>
+                    {vid.category && (
+                      <div className="absolute top-3 left-3 rounded-md bg-black/60 px-3 py-1 text-[11px] font-bold text-white uppercase tracking-wider backdrop-blur-sm">
+                        {vid.category}
+                      </div>
+                    )}
 
-                    <div className="absolute bottom-4 left-4 right-4">
-                      <h3 className="font-heading text-lg font-bold text-white leading-snug">{vid.title}</h3>
-                    </div>
+                    {vid.title && (
+                      <div className="absolute bottom-4 left-4 right-4">
+                        <h3 className="font-heading text-lg font-bold text-white leading-snug">{vid.title}</h3>
+                      </div>
+                    )}
                   </div>
                 </div>
               ))}
@@ -537,18 +569,20 @@ export function PropertyDetailView({ property }: PropertyDetailViewProps) {
       )}
 
       {/* ─────────────────────────────────────────────────────────────────────
-          SECTION 5 — MASTER PLAN
+          SECTION 5 — MASTER PLAN (Rendered only if imageUrl or title exists)
           ───────────────────────────────────────────────────────────────────── */}
-      {property.masterPlan && (
+      {property.masterPlan && (property.masterPlan.imageUrl || property.masterPlan.title) && (
         <section className="py-16 md:py-24 bg-white border-t border-divider">
           <Container>
             <div className="max-w-3xl mx-auto text-center mb-12">
               <span className="text-xs font-extrabold uppercase tracking-widest text-amber-600 mb-2 block">
                 COMMUNITY LAYOUT
               </span>
-              <h2 className="font-heading text-3xl md:text-4xl font-bold text-navy-950 mb-3">
-                {property.masterPlan.title}
-              </h2>
+              {property.masterPlan.title && (
+                <h2 className="font-heading text-3xl md:text-4xl font-bold text-navy-950 mb-3">
+                  {property.masterPlan.title}
+                </h2>
+              )}
               {property.masterPlan.description && (
                 <p className="text-sm text-text-muted">{property.masterPlan.description}</p>
               )}
@@ -558,7 +592,7 @@ export function PropertyDetailView({ property }: PropertyDetailViewProps) {
               <div className="relative overflow-hidden rounded-2xl border border-divider shadow-xl bg-surface-subtle group">
                 <Image
                   src={property.masterPlan.imageUrl}
-                  alt={property.masterPlan.title}
+                  alt={property.masterPlan.title || "Master Plan"}
                   width={1400}
                   height={900}
                   className="w-full h-auto object-contain max-h-[75vh]"
@@ -611,7 +645,7 @@ export function PropertyDetailView({ property }: PropertyDetailViewProps) {
                       : "bg-white text-text-strong hover:bg-neutral-100 border border-divider"
                   )}
                 >
-                  {plan.name}
+                  {plan.name || `Plan ${idx + 1}`}
                 </button>
               ))}
             </div>
@@ -706,7 +740,7 @@ export function PropertyDetailView({ property }: PropertyDetailViewProps) {
                   className="relative h-64 overflow-hidden rounded-2xl bg-surface-subtle group cursor-pointer shadow-sm hover:shadow-md transition-shadow"
                   onClick={() => setActiveImageIndex(idx)}
                 >
-                  <Image src={img} alt={`${property.name} ${idx + 1}`} fill sizes="33vw" className="object-cover group-hover:scale-105 transition-transform duration-500" />
+                  <Image src={img} alt={`${property.name} ${idx + 1}`} fill sizes="(min-width: 1024px) 33vw, 100vw" className="object-cover group-hover:scale-105 transition-transform duration-500" />
                 </div>
               ))}
             </div>
@@ -715,33 +749,40 @@ export function PropertyDetailView({ property }: PropertyDetailViewProps) {
       )}
 
       {/* ─────────────────────────────────────────────────────────────────────
-          SECTION 8 — AMENITIES
+          SECTION 8 — AMENITIES (PROMINENT & ENLARGED SIZING)
           ───────────────────────────────────────────────────────────────────── */}
       {property.amenities && property.amenities.length > 0 && (
         <section className="py-16 md:py-24 bg-surface-subtle/50 border-t border-divider">
           <Container>
-            <div className="mb-12 text-center">
-              <span className="text-xs font-extrabold uppercase tracking-widest text-amber-600 mb-2 block">
+            <div className="mb-14 text-center">
+              <span className="text-xs font-extrabold uppercase tracking-widest text-amber-600 mb-3 block">
                 WORLD-CLASS AMENITIES
               </span>
-              <h2 className="font-heading text-3xl md:text-4xl font-bold text-navy-950">
+              <h2 className="font-heading text-3xl sm:text-4xl md:text-5xl font-extrabold text-navy-950">
                 Designed for Elevated Living
               </h2>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8">
               {property.amenities.map((amenity, idx) => (
-                <div key={idx} className="flex items-center gap-4 rounded-2xl border border-divider bg-white p-4 shadow-sm">
+                <div
+                  key={idx}
+                  className="flex items-center gap-5 sm:gap-6 rounded-3xl border border-divider bg-white p-6 sm:p-7 shadow-sm hover:shadow-xl hover:border-amber-400/50 transition-all duration-300"
+                >
                   {amenity.image ? (
-                    <div className="relative h-16 w-16 overflow-hidden rounded-xl shrink-0">
+                    <div className="relative h-20 w-20 sm:h-24 sm:w-24 overflow-hidden rounded-2xl shrink-0 shadow-inner">
                       <Image src={amenity.image} alt={amenity.name} fill className="object-cover" />
                     </div>
                   ) : (
-                    <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-amber-500/10 text-amber-600 shrink-0">
-                      <Sparkles size={20} />
+                    <div className="flex h-20 w-20 sm:h-24 sm:w-24 items-center justify-center rounded-2xl bg-amber-500/10 text-amber-600 shrink-0">
+                      <Sparkles size={32} />
                     </div>
                   )}
-                  <span className="font-semibold text-navy-900 text-sm">{amenity.name}</span>
+                  <div>
+                    <span className="font-heading font-extrabold text-navy-950 text-lg sm:text-xl block leading-snug">
+                      {amenity.name}
+                    </span>
+                  </div>
                 </div>
               ))}
             </div>
@@ -768,12 +809,14 @@ export function PropertyDetailView({ property }: PropertyDetailViewProps) {
               {property.locationLandmarks.map((lm, idx) => (
                 <div key={idx} className="flex items-center justify-between rounded-2xl border border-divider bg-surface-subtle p-5">
                   <div>
-                    <span className="block text-[10px] font-bold uppercase tracking-wider text-amber-600">{lm.category}</span>
+                    {lm.category && <span className="block text-[10px] font-bold uppercase tracking-wider text-amber-600">{lm.category}</span>}
                     <span className="font-bold text-navy-950 text-sm">{lm.name}</span>
                   </div>
-                  <span className="rounded-full bg-navy-900 text-white px-3 py-1 text-xs font-bold shrink-0 ml-2">
-                    {lm.distance}
-                  </span>
+                  {lm.distance && (
+                    <span className="rounded-full bg-navy-900 text-white px-3 py-1 text-xs font-bold shrink-0 ml-2">
+                      {lm.distance}
+                    </span>
+                  )}
                 </div>
               ))}
             </div>
@@ -811,10 +854,10 @@ export function PropertyDetailView({ property }: PropertyDetailViewProps) {
       )}
 
       {/* ─────────────────────────────────────────────────────────────────────
-          SECTION 11 — INTERACTIVE MAP LAYOUT
+          SECTION 11 — INTERACTIVE MAP LAYOUT (Isolated stacking context)
           ───────────────────────────────────────────────────────────────────── */}
       {property.mapProjectId && (
-        <section ref={mapSectionRef} className="py-16 md:py-24 bg-white border-t border-divider">
+        <section ref={mapSectionRef} className="py-16 md:py-24 bg-white border-t border-divider relative z-0 isolate">
           <Container>
             <div className="mb-10 text-center">
               <span className="text-xs font-extrabold uppercase tracking-widest text-amber-600 mb-2 block">
@@ -825,7 +868,7 @@ export function PropertyDetailView({ property }: PropertyDetailViewProps) {
               </h2>
             </div>
 
-            <div className="rounded-2xl border border-divider overflow-hidden shadow-lg h-[550px]">
+            <div className="relative z-0 isolate rounded-2xl border border-divider overflow-hidden shadow-lg h-[420px] sm:h-[500px] md:h-[580px]">
               <PropertyLocationMap projectId={property.mapProjectId} propertyName={property.name} />
             </div>
           </Container>
@@ -833,19 +876,21 @@ export function PropertyDetailView({ property }: PropertyDetailViewProps) {
       )}
 
       {/* ─────────────────────────────────────────────────────────────────────
-          SECTION 12 — LEGAL & COMPLIANCE
+          SECTION 12 — LEGAL & COMPLIANCE (Only rendered if info exists)
           ───────────────────────────────────────────────────────────────────── */}
-      <section className="py-12 bg-surface-subtle border-t border-divider text-xs text-text-muted">
-        <Container>
-          <div className="flex flex-col gap-4 max-w-4xl mx-auto">
-            <div className="flex flex-wrap items-center gap-6 text-navy-900 font-bold">
-              {property.reraNumber && <span>RERA Reg No: {property.reraNumber}</span>}
-              {property.approvalInfo && <span>Approval: {property.approvalInfo}</span>}
+      {(property.reraNumber || property.approvalInfo || property.disclaimerText) && (
+        <section className="py-12 bg-surface-subtle border-t border-divider text-xs text-text-muted">
+          <Container>
+            <div className="flex flex-col gap-4 max-w-4xl mx-auto">
+              <div className="flex flex-wrap items-center gap-6 text-navy-900 font-bold">
+                {property.reraNumber && <span>RERA Reg No: {property.reraNumber}</span>}
+                {property.approvalInfo && <span>Approval: {property.approvalInfo}</span>}
+              </div>
+              {property.disclaimerText && <p>{property.disclaimerText}</p>}
             </div>
-            {property.disclaimerText && <p>{property.disclaimerText}</p>}
-          </div>
-        </Container>
-      </section>
+          </Container>
+        </section>
+      )}
 
       {/* ─────────────────────────────────────────────────────────────────────
           MODALS
