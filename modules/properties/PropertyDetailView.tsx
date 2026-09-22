@@ -445,42 +445,42 @@ export function PropertyDetailView({ property }: PropertyDetailViewProps) {
             )}
           </div>
 
-          {/* High Impact Numbers Grid (rendered only for fields with values) */}
+          {/* High Impact Numbers Grid (rendered only for fields with values, centered) */}
           {(property.specA || property.specB || property.price || property.possessionDate) && (
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
+            <div className="flex flex-wrap items-center justify-center gap-4 md:gap-6 max-w-4xl mx-auto">
               {property.specA && (
-                <div className="rounded-2xl bg-surface-subtle p-6 text-center border border-divider/60">
+                <div className="flex-1 min-w-[170px] max-w-[220px] rounded-2xl bg-surface-subtle p-5 sm:p-6 text-center border border-divider/60 shadow-sm">
                   <span className="block text-2xl sm:text-3xl md:text-4xl font-extrabold text-navy-950 mb-1">
                     {property.specA}
                   </span>
-                  <span className="text-xs font-bold text-text-muted uppercase tracking-wider">Configuration</span>
+                  <span className="text-[11px] sm:text-xs font-bold text-text-muted uppercase tracking-wider">Configuration</span>
                 </div>
               )}
 
               {property.specB && (
-                <div className="rounded-2xl bg-surface-subtle p-6 text-center border border-divider/60">
+                <div className="flex-1 min-w-[170px] max-w-[220px] rounded-2xl bg-surface-subtle p-5 sm:p-6 text-center border border-divider/60 shadow-sm">
                   <span className="block text-2xl sm:text-3xl md:text-4xl font-extrabold text-navy-950 mb-1">
                     {property.specB}
                   </span>
-                  <span className="text-xs font-bold text-text-muted uppercase tracking-wider">Area / Plot Size</span>
+                  <span className="text-[11px] sm:text-xs font-bold text-text-muted uppercase tracking-wider">Area / Plot Size</span>
                 </div>
               )}
 
               {property.price && (
-                <div className="rounded-2xl bg-surface-subtle p-6 text-center border border-divider/60">
+                <div className="flex-1 min-w-[170px] max-w-[220px] rounded-2xl bg-surface-subtle p-5 sm:p-6 text-center border border-divider/60 shadow-sm">
                   <span className="block text-2xl sm:text-3xl md:text-4xl font-extrabold text-amber-600 mb-1">
                     {property.price}
                   </span>
-                  <span className="text-xs font-bold text-text-muted uppercase tracking-wider">Starting Price</span>
+                  <span className="text-[11px] sm:text-xs font-bold text-text-muted uppercase tracking-wider">Starting Price</span>
                 </div>
               )}
 
               {property.possessionDate && (
-                <div className="rounded-2xl bg-surface-subtle p-6 text-center border border-divider/60">
+                <div className="flex-1 min-w-[170px] max-w-[220px] rounded-2xl bg-surface-subtle p-5 sm:p-6 text-center border border-divider/60 shadow-sm">
                   <span className="block text-2xl sm:text-3xl md:text-4xl font-extrabold text-navy-950 mb-1">
                     {property.possessionDate}
                   </span>
-                  <span className="text-xs font-bold text-text-muted uppercase tracking-wider">Possession</span>
+                  <span className="text-[11px] sm:text-xs font-bold text-text-muted uppercase tracking-wider">Possession</span>
                 </div>
               )}
             </div>
@@ -494,11 +494,11 @@ export function PropertyDetailView({ property }: PropertyDetailViewProps) {
       {property.highlights && property.highlights.length > 0 && (
         <section className="py-12 bg-navy-950 text-white">
           <Container>
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4 text-center">
+            <div className="flex flex-wrap items-center justify-center gap-4 text-center max-w-5xl mx-auto">
               {property.highlights
                 .filter((h) => h.label || h.value)
                 .map((h, idx) => (
-                  <div key={idx} className="p-4 rounded-xl bg-white/5 border border-white/10">
+                  <div key={idx} className="flex-1 min-w-[140px] max-w-[180px] p-4 rounded-xl bg-white/5 border border-white/10">
                     {h.value && <span className="block text-2xl font-extrabold text-amber-400 mb-1">{h.value}</span>}
                     {h.label && <span className="text-xs font-semibold text-white/80">{h.label}</span>}
                   </div>
@@ -523,11 +523,11 @@ export function PropertyDetailView({ property }: PropertyDetailViewProps) {
               </h2>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="flex flex-wrap items-center justify-center gap-6 max-w-6xl mx-auto">
               {property.videoExperience.map((vid, idx) => (
                 <div
                   key={idx}
-                  className="group relative overflow-hidden rounded-2xl bg-navy-950 shadow-lg cursor-pointer"
+                  className="group relative overflow-hidden rounded-2xl bg-navy-950 shadow-lg cursor-pointer flex-1 min-w-[280px] max-w-[380px]"
                   onClick={() => {
                     setActiveVideoUrl(vid.videoUrl);
                     handleOpenModal("video_lightbox");
@@ -569,9 +569,9 @@ export function PropertyDetailView({ property }: PropertyDetailViewProps) {
       )}
 
       {/* ─────────────────────────────────────────────────────────────────────
-          SECTION 5 — MASTER PLAN (Rendered only if imageUrl or title exists)
+          SECTION 5 — MASTER PLAN (Rendered ONLY if imageUrl is uploaded)
           ───────────────────────────────────────────────────────────────────── */}
-      {property.masterPlan && (property.masterPlan.imageUrl || property.masterPlan.title) && (
+      {property.masterPlan && property.masterPlan.imageUrl && (
         <section className="py-16 md:py-24 bg-white border-t border-divider">
           <Container>
             <div className="max-w-3xl mx-auto text-center mb-12">
@@ -588,30 +588,28 @@ export function PropertyDetailView({ property }: PropertyDetailViewProps) {
               )}
             </div>
 
-            {property.masterPlan.imageUrl && (
-              <div className="relative overflow-hidden rounded-2xl border border-divider shadow-xl bg-surface-subtle group">
-                <Image
-                  src={property.masterPlan.imageUrl}
-                  alt={property.masterPlan.title || "Master Plan"}
-                  width={1400}
-                  height={900}
-                  className="w-full h-auto object-contain max-h-[75vh]"
-                />
-                <div className="absolute bottom-4 right-4 flex items-center gap-2">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setZoomedPlanImageUrl(property.masterPlan?.imageUrl || null);
-                      handleOpenModal("master_plan_zoom");
-                    }}
-                    className="flex items-center gap-2 rounded-xl bg-navy-900/90 hover:bg-navy-900 text-white px-4 py-2.5 text-xs font-bold backdrop-blur-sm transition-all cursor-pointer"
-                  >
-                    <ZoomIn size={16} />
-                    <span>View High-Res Master Plan</span>
-                  </button>
-                </div>
+            <div className="relative overflow-hidden rounded-2xl border border-divider shadow-xl bg-surface-subtle group max-w-5xl mx-auto">
+              <Image
+                src={property.masterPlan.imageUrl}
+                alt={property.masterPlan.title || "Master Plan"}
+                width={1400}
+                height={900}
+                className="w-full h-auto object-contain max-h-[75vh]"
+              />
+              <div className="absolute bottom-4 right-4 flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setZoomedPlanImageUrl(property.masterPlan?.imageUrl || null);
+                    handleOpenModal("master_plan_zoom");
+                  }}
+                  className="flex items-center gap-2 rounded-xl bg-navy-900/90 hover:bg-navy-900 text-white px-4 py-2.5 text-xs font-bold backdrop-blur-sm transition-all cursor-pointer"
+                >
+                  <ZoomIn size={16} />
+                  <span>View High-Res Master Plan</span>
+                </button>
               </div>
-            )}
+            </div>
           </Container>
         </section>
       )}
@@ -652,7 +650,7 @@ export function PropertyDetailView({ property }: PropertyDetailViewProps) {
 
             {/* Active Plan Detail View */}
             {property.floorPlans[activeFloorPlanIndex] && (
-              <div className="rounded-2xl border border-divider bg-white p-6 md:p-8 shadow-sm grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
+              <div className="rounded-2xl border border-divider bg-white p-6 md:p-8 shadow-sm grid grid-cols-1 lg:grid-cols-2 gap-8 items-center max-w-5xl mx-auto">
                 <div className="flex flex-col gap-4">
                   <h3 className="font-heading text-2xl font-bold text-navy-950">
                     {property.floorPlans[activeFloorPlanIndex].name}
@@ -719,7 +717,7 @@ export function PropertyDetailView({ property }: PropertyDetailViewProps) {
       )}
 
       {/* ─────────────────────────────────────────────────────────────────────
-          SECTION 7 — PROJECT GALLERY
+          SECTION 7 — PROJECT GALLERY (Centered flex grid)
           ───────────────────────────────────────────────────────────────────── */}
       {property.gallery && property.gallery.length > 0 && (
         <section className="py-16 md:py-24 bg-white border-t border-divider">
@@ -733,11 +731,11 @@ export function PropertyDetailView({ property }: PropertyDetailViewProps) {
               </h2>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+            <div className="flex flex-wrap items-center justify-center gap-6 max-w-6xl mx-auto">
               {property.gallery.map((img, idx) => (
                 <div
                   key={idx}
-                  className="relative h-64 overflow-hidden rounded-2xl bg-surface-subtle group cursor-pointer shadow-sm hover:shadow-md transition-shadow"
+                  className="relative h-64 flex-1 min-w-[280px] max-w-[380px] overflow-hidden rounded-2xl bg-surface-subtle group cursor-pointer shadow-sm hover:shadow-md transition-shadow"
                   onClick={() => setActiveImageIndex(idx)}
                 >
                   <Image src={img} alt={`${property.name} ${idx + 1}`} fill sizes="(min-width: 1024px) 33vw, 100vw" className="object-cover group-hover:scale-105 transition-transform duration-500" />
@@ -749,7 +747,7 @@ export function PropertyDetailView({ property }: PropertyDetailViewProps) {
       )}
 
       {/* ─────────────────────────────────────────────────────────────────────
-          SECTION 8 — AMENITIES (PROMINENT & ENLARGED SIZING)
+          SECTION 8 — AMENITIES (CENTERED & BALANCED GRID)
           ───────────────────────────────────────────────────────────────────── */}
       {property.amenities && property.amenities.length > 0 && (
         <section className="py-16 md:py-24 bg-surface-subtle/50 border-t border-divider">
@@ -763,11 +761,11 @@ export function PropertyDetailView({ property }: PropertyDetailViewProps) {
               </h2>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8">
+            <div className="flex flex-wrap items-center justify-center gap-6 sm:gap-8 max-w-5xl mx-auto">
               {property.amenities.map((amenity, idx) => (
                 <div
                   key={idx}
-                  className="flex items-center gap-5 sm:gap-6 rounded-3xl border border-divider bg-white p-6 sm:p-7 shadow-sm hover:shadow-xl hover:border-amber-400/50 transition-all duration-300"
+                  className="flex flex-1 items-center gap-5 sm:gap-6 rounded-3xl border border-divider bg-white p-6 sm:p-7 shadow-sm hover:shadow-xl hover:border-amber-400/50 transition-all duration-300 min-w-[240px] max-w-[340px]"
                 >
                   {amenity.image ? (
                     <div className="relative h-20 w-20 sm:h-24 sm:w-24 overflow-hidden rounded-2xl shrink-0 shadow-inner">
