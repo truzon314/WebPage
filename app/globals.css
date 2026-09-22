@@ -32,7 +32,7 @@
   --color-error: #c0392b;
   --color-whatsapp: #25d366;
 
-  --font-heading: var(--font-playfair);
+  --font-heading: var(--font-work-sans);
   --font-body: var(--font-work-sans);
 
   --animate-fade-in: fade-in 0.7s ease both;

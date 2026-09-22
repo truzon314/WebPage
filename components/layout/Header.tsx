@@ -36,11 +36,11 @@ export function Header({
       if (currentScrollY <= 50) {
         setHeaderVisible(true);
       } else if (currentScrollY > lastScrollY.current + 5) {
-        // Scrolling down -> show header
-        setHeaderVisible(true);
-      } else if (currentScrollY < lastScrollY.current - 5) {
-        // Scrolling up -> hide header
+        // Scrolling down -> hide header
         setHeaderVisible(false);
+      } else if (currentScrollY < lastScrollY.current - 5) {
+        // Scrolling up -> show header
+        setHeaderVisible(true);
       }
       lastScrollY.current = currentScrollY;
     }
