@@ -14,10 +14,7 @@ import { getStoredVisitorContact, setStoredVisitorContact } from "@/modules/lead
  * property's site layout, or from live chat) skips straight through. */
 export function SitemapGate() {
   const router = useRouter();
-  const [checkedStorage] = useState(() => {
-    if (typeof window === "undefined") return false;
-    return !getStoredVisitorContact();
-  });
+  const [checkedStorage, setCheckedStorage] = useState(false);
   const [formData, setFormData] = useState({ name: "", phone: "", email: "" });
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -25,6 +22,8 @@ export function SitemapGate() {
   useEffect(() => {
     if (getStoredVisitorContact()) {
       router.replace("/projects");
+    } else {
+      setCheckedStorage(true);
     }
   }, [router]);
 

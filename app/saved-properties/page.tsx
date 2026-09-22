@@ -3,11 +3,16 @@ import { PageHero } from "@/modules/content/PageHero";
 import { SavedPropertiesGrid } from "@/modules/properties/SavedPropertiesGrid";
 import { listProperties } from "@/modules/properties/api";
 import { toProperty } from "@/modules/properties/mappers";
+import { buildMetadata } from "@/lib/seo";
 
-export const metadata: Metadata = {
-  title: "Saved Properties",
-  description: "Your saved property listings.",
-};
+export function generateMetadata(): Metadata {
+  return buildMetadata({
+    path: "/saved-properties",
+    fallbackTitle: "Saved Properties",
+    fallbackDescription: "Your saved property listings on Truzon Homes.",
+    noIndex: true,
+  });
+}
 
 export default async function SavedPropertiesPage() {
   const { items } = await listProperties().catch(() => ({ items: [], total: 0 }));

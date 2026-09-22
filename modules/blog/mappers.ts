@@ -10,6 +10,7 @@ function formatReadTime(minutes: number | null): string | undefined {
 
 export function toBlogPost(post: CmsBlogPostListItem | CmsBlogPost): BlogPost {
   const category = "category_names" in post ? post.category_names[0] : post.categories[0]?.name;
+  const tags = "tags" in post && Array.isArray(post.tags) ? post.tags.map((t) => t.name) : [];
   return {
     slug: post.slug,
     category: category ?? "",
@@ -18,5 +19,8 @@ export function toBlogPost(post: CmsBlogPostListItem | CmsBlogPost): BlogPost {
     body: "body" in post ? post.body : undefined,
     image: resolveMediaUrl(post.featured_image_url) ?? FALLBACK_IMAGE,
     readTime: formatReadTime(post.reading_time_minutes),
+    tags: tags.length > 0 ? tags : undefined,
+    publishedAt: post.published_at ?? undefined,
   };
 }
+

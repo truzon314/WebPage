@@ -5,7 +5,13 @@ import { getPage, getSettings } from "@/modules/content/api";
 import { ProjectsGrid } from "@/modules/properties/ProjectsGrid";
 import { listCategories, listProperties } from "@/modules/properties/api";
 import { toProperty } from "@/modules/properties/mappers";
-import { buildMetadata } from "@/lib/seo";
+import { JsonLd } from "@/components/seo/JsonLd";
+import { breadcrumbJsonLd, buildMetadata } from "@/lib/seo";
+
+const SITE_URL = "https://www.truzonhomes.com";
+
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
 
 export async function generateMetadata(): Promise<Metadata> {
   const [projectsPage, settings] = await Promise.all([
@@ -49,6 +55,15 @@ export default async function ProjectsPage() {
 
   return (
     <>
+      <JsonLd
+        data={breadcrumbJsonLd(
+          [
+            { name: "Home", url: "/" },
+            { name: "Projects", url: "/projects" },
+          ],
+          SITE_URL
+        )}
+      />
       <PageHero
         title={hero.heading}
         subtitle={hero.body}

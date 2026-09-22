@@ -60,6 +60,18 @@ export function LatestInsights({ posts }: { posts: BlogPost[] }) {
                     {post.title}
                   </div>
                   <div className="text-[13px] leading-[1.6] text-text-muted">{post.excerpt}</div>
+                  {post.tags && post.tags.length > 0 && (
+                    <div className="mt-3 flex flex-wrap items-center gap-1.5 pt-2 border-t border-gray-100">
+                      {post.tags.slice(0, 2).map((t) => (
+                        <span
+                          key={t}
+                          className="rounded bg-navy-900/5 px-2 py-0.5 text-[10.5px] font-medium text-navy-800"
+                        >
+                          #{t}
+                        </span>
+                      ))}
+                    </div>
+                  )}
                 </div>
               </Link>
             </motion.div>

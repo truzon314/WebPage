@@ -50,12 +50,12 @@ export const FOOTER_COLUMNS: FooterLinkColumn[] = [
 
 export const CONTACT_INFO = {
   address: "Truzon Towers, Floor 12, Jubilee Hills Road No. 36, Hyderabad, Telangana 500033",
-  email: "info@truzonhomes.com",
+  email: "contact@truzonhomes.com",
   salesEmail: "sales@truzonhomes.com",
-  phoneDisplay: "+919030010793",
-  callbackPhoneDisplay: "+919030010793",
-  callbackPhoneHref: "tel:+919030010793",
-  whatsappHref: "https://wa.me/919030010793",
+  phoneDisplay: "+91 98480 15424",
+  callbackPhoneDisplay: "+91 98480 15424",
+  callbackPhoneHref: "tel:+919848015424",
+  whatsappHref: "https://wa.me/919848012345",
   workingHoursPrimary: "Mon – Sat: 9:30 AM – 7:30 PM",
   workingHoursSecondary: "Consultants on call 24/7",
 };

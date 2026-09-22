@@ -33,6 +33,9 @@ import "./globals.css";
 
 const SITE_URL = "https://www.truzonhomes.com";
 
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 const playfairDisplay = Playfair_Display({
   variable: "--font-playfair",
   subsets: ["latin"],

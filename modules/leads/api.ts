@@ -1,4 +1,5 @@
 import { cmsFetch } from "@/lib/cms-client";
+import { setStoredVisitorContact } from "@/modules/leads/visitorContact";
 
 export async function submitForm(
   formKey: string,
@@ -24,6 +25,15 @@ export async function submitForm(
       envelope.error?.message ??
         "Could not submit the form — please try again."
     );
+  }
+
+  // Automatically remember visitor contact site-wide when any form is submitted
+  if (payload.name && payload.phone) {
+    setStoredVisitorContact({
+      name: payload.name.trim(),
+      phone: payload.phone.trim(),
+      email: payload.email ? payload.email.trim() : undefined,
+    });
   }
 
   return envelope.data;

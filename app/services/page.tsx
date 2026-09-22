@@ -3,12 +3,26 @@ import { Building2, Hammer, Home, Landmark, PaintRoller, Wrench, type LucideIcon
 import { PageHero } from "@/modules/content/PageHero";
 import { CTA } from "@/modules/content/CTA";
 import { Container } from "@/components/ui/Container";
+import { getPage, getSettings } from "@/modules/content/api";
+import { JsonLd } from "@/components/seo/JsonLd";
+import { breadcrumbJsonLd, buildMetadata } from "@/lib/seo";
 
-export const metadata: Metadata = {
-  title: "Services",
-  description:
-    "From land acquisition and DTCP/RERA-approved development to turnkey interiors and after-sales care — explore the services Truzon Homes offers across every stage of building a home.",
-};
+const SITE_URL = "https://www.truzonhomes.com";
+
+export async function generateMetadata(): Promise<Metadata> {
+  const [servicesPage, settings] = await Promise.all([
+    getPage("services").catch(() => null),
+    getSettings().catch(() => null),
+  ]);
+  return buildMetadata({
+    seo: servicesPage?.seo,
+    settings,
+    path: "/services",
+    fallbackTitle: "Real Estate & Construction Services",
+    fallbackDescription:
+      "From land acquisition and DTCP/RERA approvals to turnkey villa construction and interior design — Truzon Homes delivers complete real estate services.",
+  });
+}
 
 interface ServiceItem {
   icon: LucideIcon;
@@ -58,6 +72,15 @@ const SERVICES: ServiceItem[] = [
 export default function ServicesPage() {
   return (
     <>
+      <JsonLd
+        data={breadcrumbJsonLd(
+          [
+            { name: "Home", url: "/" },
+            { name: "Services", url: "/services" },
+          ],
+          SITE_URL
+        )}
+      />
       <PageHero
         title="Our Services"
         subtitle="Everything it takes to turn a plot of land into a home you're proud of — handled end to end, under one roof."

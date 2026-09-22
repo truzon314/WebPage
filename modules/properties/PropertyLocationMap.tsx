@@ -7,8 +7,11 @@ import type { Feature, FeatureCollection } from "geojson";
 import { getMapLayerGeoJson, getMapProject, type CmsMapLayer } from "@/modules/properties/api";
 
 interface Props {
-  projectId: string;
+  projectId?: string | null;
+  propertyName?: string;
+  location?: string;
 }
+
 
 // Minimum zoom level at which on-map text labels become legible and fit
 // inside polygons — matches the CMS admin map's own threshold
@@ -23,6 +26,23 @@ function fontSizeForZoom(zoom: number): number {
   const base = 10;
   const growth = Math.max(0, zoom - LABEL_MIN_ZOOM) * 2.5;
   return Math.min(base + growth, 28);
+}
+
+// Extract label text from feature properties with auto-detection fallback.
+// NOTE: We deliberately exclude `fid` and `id` from auto-detection because
+// they are database row IDs, not meaningful display labels — showing them
+// produces confusing "1", "2", "3" numbers on every polygon.
+function getFeatureLabelText(properties: Record<string, unknown> | null | undefined, configuredProp?: string | null): string | null {
+  if (!properties) return null;
+  // If a specific property is configured (and not the literal string "None"), use it exclusively
+  const prop = configuredProp && configuredProp !== "None" && configuredProp !== "null" ? configuredProp.trim() : null;
+  if (prop) {
+    const val = properties[prop];
+    return val != null ? String(val) : null;
+  }
+  // Auto-detect only from meaningful semantic properties — never from id/fid
+  const val = properties.Plot ?? properties.plot ?? properties.plot_number ?? properties.PlotNumber ?? properties.Name ?? properties.name ?? properties.label ?? properties.Label;
+  return val != null ? String(val) : null;
 }
 
 // Centroid of a feature's geometry, for placing an on-map text label.
@@ -97,64 +117,99 @@ function popupHtml(layerName: string, properties: Record<string, unknown>, allow
   `;
 }
 
-export function PropertyLocationMap({ projectId }: Props) {
+export function PropertyLocationMap({ projectId, propertyName, location }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<L.Map | null>(null);
   // Combined extent of every loaded feature, kept current independently of
   // the initial fitBounds() call so the "Zoom to Fit" button still works
   // after the visitor has manually panned/zoomed away.
   const boundsRef = useRef<L.LatLngBounds | null>(null);
+  const loadedGeojsonLayersRef = useRef<L.Layer[]>([]);
+  const loadedLabelMarkersRef = useRef<{ marker: L.Marker; text: string }[]>([]);
   const [loadError, setLoadError] = useState(false);
   const [hasFeatures, setHasFeatures] = useState(true);
 
+  // 1. Map container initialization (runs once when container is mounted)
   useEffect(() => {
     if (!containerRef.current || mapRef.current) return;
 
-    // React 18 Strict Mode double-invokes effects in dev (mount → cleanup →
-    // mount) — Leaflet stamps `_leaflet_id` on the container to guard
-    // against double-init, but that stamp can outlive the first mount's
-    // `map.remove()` cleanup, making the second mount silently throw
-    // ("Map container is already initialized") with nothing ever rendering.
+    // React 18 Strict Mode double-invokes effects in dev (mount → cleanup → mount)
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     delete (containerRef.current as any)._leaflet_id;
 
+    const defaultCenter: [number, number] = [17.4485, 78.3758];
     const map = L.map(containerRef.current, { zoomControl: true, scrollWheelZoom: true });
     L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
       attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
       maxZoom: 20,
     }).addTo(map);
-    map.setView([20.5937, 78.9629], 5);
+    map.setView(defaultCenter, 13);
     mapRef.current = map;
 
+    const t1 = setTimeout(() => map.invalidateSize(), 50);
+    const t2 = setTimeout(() => map.invalidateSize(), 250);
+    const t3 = setTimeout(() => map.invalidateSize(), 600);
+
+    const onResize = () => map.invalidateSize();
+    window.addEventListener("resize", onResize);
+
+    return () => {
+      clearTimeout(t1);
+      clearTimeout(t2);
+      clearTimeout(t3);
+      window.removeEventListener("resize", onResize);
+      map.remove();
+      mapRef.current = null;
+    };
+  }, []);
+
+  function buildLabelIcon(text: string, fontSize: number, maxWidth = 120): L.DivIcon {
+    return L.divIcon({
+      className: "property-map-label-icon",
+      html: `<span style="
+        display: inline-block;
+        transform: translate(-50%, -50%);
+        font-size: ${fontSize}px;
+        font-weight: 700;
+        color: #0f172a;
+        text-shadow: 0 0 2px #ffffff, 0 0 4px #ffffff, 0 0 2px #ffffff;
+        white-space: nowrap;
+        max-width: ${maxWidth}px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        pointer-events: none;
+        text-align: center;
+      ">${escapeHtml(text)}</span>`,
+      iconSize: [0, 0],
+      iconAnchor: [0, 0],
+    });
+  }
+
+  // 2. Project & Layer loading (runs whenever projectId, propertyName, or location changes)
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map) return;
+
     let cancelled = false;
+
+    // Nuclear cleanup: remove every non-tile layer from the Leaflet map.
+    // This guarantees no cross-project GeoJSON/marker bleed even if refs
+    // become out-of-sync (e.g. React reusing the component instance in SSR).
+    map.eachLayer((layer) => {
+      if (!(layer instanceof L.TileLayer)) {
+        map.removeLayer(layer);
+      }
+    });
+    loadedGeojsonLayersRef.current = [];
+    loadedLabelMarkersRef.current = [];
+    boundsRef.current = null;
+
     const bounds = L.featureGroup();
-    const labelMarkers: { marker: L.Marker; text: string }[] = [];
 
-    function buildLabelIcon(text: string, fontSize: number): L.DivIcon {
-      return L.divIcon({
-        className: "property-map-label-icon",
-        html: `<span style="
-          display: inline-block;
-          transform: translate(-50%, -50%);
-          font-size: ${fontSize}px;
-          font-weight: 700;
-          color: #0f172a;
-          text-shadow: 0 0 2px #ffffff, 0 0 4px #ffffff, 0 0 2px #ffffff;
-          white-space: nowrap;
-          pointer-events: none;
-        ">${escapeHtml(text)}</span>`,
-        iconSize: [0, 0],
-        iconAnchor: [0, 0],
-      });
-    }
-
-    // Toggles label visibility at LABEL_MIN_ZOOM and, past that, re-renders
-    // each label's icon at the zoom-appropriate size — a divIcon's HTML is
-    // static once created, so growing the font means swapping the icon.
     const syncLabels = () => {
       const zoom = map.getZoom();
       const fontSize = fontSizeForZoom(zoom);
-      for (const { marker, text } of labelMarkers) {
+      for (const { marker, text } of loadedLabelMarkersRef.current) {
         if (zoom >= LABEL_MIN_ZOOM) {
           marker.setIcon(buildLabelIcon(text, fontSize));
           if (!map.hasLayer(marker)) marker.addTo(map);
@@ -163,11 +218,25 @@ export function PropertyLocationMap({ projectId }: Props) {
         }
       }
     };
+
     map.on("zoomend", syncLabels);
+    map.on("zoom", syncLabels);
+
+    if (!projectId) {
+      const marker = L.marker([17.4485, 78.3758]).addTo(map);
+      marker.bindPopup(`<b>${escapeHtml(propertyName || "Truzon Homes Project")}</b><br/>${escapeHtml(location || "Prime Hyderabad Corridor")}`).openPopup();
+      loadedGeojsonLayersRef.current.push(marker);
+      setHasFeatures(true);
+      return () => {
+        cancelled = true;
+        map.off("zoomend", syncLabels);
+        map.off("zoom", syncLabels);
+      };
+    }
 
     getMapProject(projectId)
       .then(async (data) => {
-        if (cancelled) return; // stale effect instance (React 18 Strict Mode double-invoke) — no-op, not an error
+        if (cancelled) return;
         if (!data) {
           setLoadError(true);
           return;
@@ -205,130 +274,104 @@ export function PropertyLocationMap({ projectId }: Props) {
             },
           }).addTo(map);
 
+          loadedGeojsonLayersRef.current.push(leafletLayer);
           bounds.addLayer(leafletLayer);
 
-          if (layer.label_property) {
-            const prop = layer.label_property;
-            const currentZoom = map.getZoom();
-            const currentFontSize = fontSizeForZoom(currentZoom);
+          const prop = layer.label_property;
+          const currentZoom = map.getZoom();
+          const currentFontSize = fontSizeForZoom(currentZoom);
 
-            // Compute the display position for each feature's label.
-            // "center" (default) = individual centroid per feature.
-            // "aligned" = snap labels in the same row/column to a shared center line.
-            const centroids: (L.LatLngExpression | null)[] = geojson.features.map((f) =>
-              centroidOf(f.geometry)
-            );
+          const centroids: (L.LatLngExpression | null)[] = geojson.features.map((f) => centroidOf(f.geometry));
+          let displayPositions: (L.LatLngExpression | null)[] = centroids;
 
-            let displayPositions: (L.LatLngExpression | null)[] = centroids;
-
-            if (layer.label_alignment === "aligned") {
-              // --- Aligned Center algorithm ---
-              // 1. Collect valid [lat, lng] centroids alongside original indices.
-              type PointEntry = { idx: number; lat: number; lng: number };
-              const pts: PointEntry[] = [];
-              centroids.forEach((c, i) => {
-                if (c) {
-                  const [lat, lng] = c as [number, number];
-                  pts.push({ idx: i, lat, lng });
-                }
-              });
-
-              if (pts.length > 0) {
-                // 2. Group by proximity: two points belong to the same group if
-                //    they are within `threshold` degrees of each other. Threshold
-                //    is derived from median nearest-neighbor distance, capped to
-                //    a reasonable maximum so sparse isolated plots don't all merge.
-                const sorted = [...pts].sort((a, b) => a.lat - b.lat || a.lng - b.lng);
-
-                // Compute median nearest-neighbor distance for dynamic threshold.
-                const nnDists: number[] = sorted.map((p, i) => {
-                  let min = Infinity;
-                  for (let j = Math.max(0, i - 5); j < Math.min(sorted.length, i + 6); j++) {
-                    if (j === i) continue;
-                    const d = Math.hypot(p.lat - sorted[j].lat, p.lng - sorted[j].lng);
-                    if (d < min) min = d;
-                  }
-                  return min === Infinity ? 0 : min;
-                });
-                nnDists.sort((a, b) => a - b);
-                const medianNN = nnDists[Math.floor(nnDists.length / 2)] || 0;
-                const threshold = Math.min(medianNN * 2.5, 0.002);
-
-                // Union-Find grouping.
-                const parent = pts.map((_, i) => i);
-                function find(i: number): number {
-                  if (parent[i] !== i) parent[i] = find(parent[i]);
-                  return parent[i];
-                }
-                function union(a: number, b: number) {
-                  parent[find(a)] = find(b);
-                }
-                for (let i = 0; i < pts.length; i++) {
-                  for (let j = i + 1; j < pts.length; j++) {
-                    const d = Math.hypot(pts[i].lat - pts[j].lat, pts[i].lng - pts[j].lng);
-                    if (d <= threshold) union(i, j);
-                  }
-                }
-
-                // Collect groups.
-                const groups = new Map<number, PointEntry[]>();
-                pts.forEach((p, i) => {
-                  const root = find(i);
-                  if (!groups.has(root)) groups.set(root, []);
-                  groups.get(root)!.push(p);
-                });
-
-                // Build a lookup: feature-index → aligned display position.
-                const aligned = new Map<number, L.LatLngExpression>();
-                groups.forEach((group) => {
-                  if (group.length === 1) {
-                    // Single isolated plot — keep its own centroid.
-                    const { idx, lat, lng } = group[0];
-                    aligned.set(idx, [lat, lng]);
-                    return;
-                  }
-
-                  // Measure spread in each axis.
-                  const lats = group.map((p) => p.lat);
-                  const lngs = group.map((p) => p.lng);
-                  const latSpread = Math.max(...lats) - Math.min(...lats);
-                  const lngSpread = Math.max(...lngs) - Math.min(...lngs);
-
-                  const meanLat = lats.reduce((s, v) => s + v, 0) / lats.length;
-                  const meanLng = lngs.reduce((s, v) => s + v, 0) / lngs.length;
-
-                  group.forEach(({ idx, lat, lng }) => {
-                    if (latSpread >= lngSpread) {
-                      // Primarily a vertical column — share X (lng), keep individual Y (lat).
-                      aligned.set(idx, [lat, meanLng]);
-                    } else {
-                      // Primarily a horizontal row — share Y (lat), keep individual X (lng).
-                      aligned.set(idx, [meanLat, lng]);
-                    }
-                  });
-                });
-
-                // Rebuild displayPositions using aligned map where available.
-                displayPositions = centroids.map((c, i) => aligned.get(i) ?? c);
+          if (layer.label_alignment === "aligned") {
+            type PointEntry = { idx: number; lat: number; lng: number };
+            const pts: PointEntry[] = [];
+            centroids.forEach((c, i) => {
+              if (c) {
+                const [lat, lng] = c as [number, number];
+                pts.push({ idx: i, lat, lng });
               }
-            }
-            // --- End alignment algorithm ---
+            });
 
-            for (let fi = 0; fi < geojson.features.length; fi++) {
-              const feature = geojson.features[fi];
-              if (matchRule(layer, feature.properties)?.action === "hide") continue;
-              const center = displayPositions[fi];
-              const text = feature.properties?.[prop];
-              if (!center || text == null) continue;
-
-              const labelText = String(text);
-              const marker = L.marker(center, {
-                icon: buildLabelIcon(labelText, currentFontSize),
-                interactive: false,
+            if (pts.length > 0) {
+              const sorted = [...pts].sort((a, b) => a.lat - b.lat || a.lng - b.lng);
+              const nnDists: number[] = sorted.map((p, i) => {
+                let min = Infinity;
+                for (let j = Math.max(0, i - 5); j < Math.min(sorted.length, i + 6); j++) {
+                  if (j === i) continue;
+                  const d = Math.hypot(p.lat - sorted[j].lat, p.lng - sorted[j].lng);
+                  if (d < min) min = d;
+                }
+                return min === Infinity ? 0 : min;
               });
-              if (currentZoom >= LABEL_MIN_ZOOM) marker.addTo(map);
-              labelMarkers.push({ marker, text: labelText });
+              nnDists.sort((a, b) => a - b);
+              const medianNN = nnDists[Math.floor(nnDists.length / 2)] || 0;
+              const threshold = Math.min(medianNN * 2.5, 0.002);
+
+              const parent = pts.map((_, i) => i);
+              function find(i: number): number {
+                if (parent[i] !== i) parent[i] = find(parent[i]);
+                return parent[i];
+              }
+              function union(a: number, b: number) {
+                parent[find(a)] = find(b);
+              }
+              for (let i = 0; i < pts.length; i++) {
+                for (let j = i + 1; j < pts.length; j++) {
+                  const d = Math.hypot(pts[i].lat - pts[j].lat, pts[i].lng - pts[j].lng);
+                  if (d <= threshold) union(i, j);
+                }
+              }
+
+              const groups = new Map<number, PointEntry[]>();
+              pts.forEach((p, i) => {
+                const root = find(i);
+                if (!groups.has(root)) groups.set(root, []);
+                groups.get(root)!.push(p);
+              });
+
+              const aligned = new Map<number, L.LatLngExpression>();
+              groups.forEach((group) => {
+                if (group.length === 1) {
+                  const { idx, lat, lng } = group[0];
+                  aligned.set(idx, [lat, lng]);
+                  return;
+                }
+                const lats = group.map((p) => p.lat);
+                const lngs = group.map((p) => p.lng);
+                const latSpread = Math.max(...lats) - Math.min(...lats);
+                const lngSpread = Math.max(...lngs) - Math.min(...lngs);
+                const meanLat = lats.reduce((s, v) => s + v, 0) / lats.length;
+                const meanLng = lngs.reduce((s, v) => s + v, 0) / lngs.length;
+
+                group.forEach(({ idx, lat, lng }) => {
+                  if (latSpread >= lngSpread) {
+                    aligned.set(idx, [lat, meanLng]);
+                  } else {
+                    aligned.set(idx, [meanLat, lng]);
+                  }
+                });
+              });
+
+              displayPositions = centroids.map((c, i) => aligned.get(i) ?? c);
             }
+          }
+
+          for (let fi = 0; fi < geojson.features.length; fi++) {
+            const feature = geojson.features[fi];
+            if (matchRule(layer, feature.properties)?.action === "hide") continue;
+            const center = displayPositions[fi];
+            const text = getFeatureLabelText(feature.properties, prop);
+            if (!center || text == null) continue;
+
+            const labelText = String(text);
+            const marker = L.marker(center, {
+              icon: buildLabelIcon(labelText, currentFontSize),
+              interactive: false,
+            });
+            if (currentZoom >= LABEL_MIN_ZOOM) marker.addTo(map);
+            loadedLabelMarkersRef.current.push({ marker, text: labelText });
           }
         }
 
@@ -337,22 +380,34 @@ export function PropertyLocationMap({ projectId }: Props) {
           if (bounds.getLayers().length > 0) {
             boundsRef.current = bounds.getBounds();
             map.fitBounds(boundsRef.current, { padding: [24, 24] });
+          } else {
+            const marker = L.marker([17.4485, 78.3758]).addTo(map);
+            marker.bindPopup(`<b>${escapeHtml(propertyName || "Truzon Homes Project")}</b><br/>${escapeHtml(location || "Prime Hyderabad Corridor")}`).openPopup();
+            loadedGeojsonLayersRef.current.push(marker);
           }
+          syncLabels();
         }
       })
       .catch(() => {
-        if (!cancelled) setLoadError(true);
+        if (!cancelled) {
+          setLoadError(true);
+          const marker = L.marker([17.4485, 78.3758]).addTo(map);
+          marker.bindPopup(`<b>${escapeHtml(propertyName || "Truzon Homes Project")}</b><br/>${escapeHtml(location || "Prime Hyderabad Corridor")}`).openPopup();
+          loadedGeojsonLayersRef.current.push(marker);
+        }
       });
 
     return () => {
       cancelled = true;
+      loadedGeojsonLayersRef.current.forEach((l) => map.removeLayer(l));
+      loadedGeojsonLayersRef.current = [];
+      loadedLabelMarkersRef.current.forEach(({ marker }) => map.removeLayer(marker));
+      loadedLabelMarkersRef.current = [];
       map.off("zoomend", syncLabels);
-      map.remove();
-      mapRef.current = null;
+      map.off("zoom", syncLabels);
     };
-  }, [projectId]);
+  }, [projectId, propertyName, location]);
 
-  if (loadError) return null;
 
   const handleZoomToFit = () => {
     const map = mapRef.current;

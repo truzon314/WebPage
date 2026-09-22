@@ -15,7 +15,7 @@ COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
 # Production backend URL is baked into the Next.js client bundle.
-ARG NEXT_PUBLIC_CMS_URL
+ARG NEXT_PUBLIC_CMS_URL="https://truzon-backend-715189721854.asia-south1.run.app"
 ENV NEXT_PUBLIC_CMS_URL=$NEXT_PUBLIC_CMS_URL
 
 RUN npm run build -- --webpack

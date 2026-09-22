@@ -23,6 +23,18 @@ interface BuildMetadataOptions {
   fallbackImage?: string | null;
 }
 
+const DEFAULT_SITE_URL = "https://www.truzonhomes.com";
+
+interface BuildMetadataOptions {
+  seo?: CmsSeo | null;
+  settings?: CmsSettings | null;
+  path: string;
+  fallbackTitle: string;
+  fallbackDescription: string;
+  fallbackImage?: string | null;
+  noIndex?: boolean;
+}
+
 /** Merges a CMS entity's SeoMeta over site-wide Global SEO Settings over a hardcoded fallback. */
 export function buildMetadata({
   seo,
@@ -31,26 +43,35 @@ export function buildMetadata({
   fallbackTitle,
   fallbackDescription,
   fallbackImage,
+  noIndex = false,
 }: BuildMetadataOptions): Metadata {
   const title = seo?.seo_title || settings?.default_meta_title || fallbackTitle;
   const description = seo?.meta_description || settings?.default_meta_description || fallbackDescription;
   const keywords = seo?.keywords ?? settings?.default_keywords ?? undefined;
-  const canonical =
-    seo?.canonical_url ||
-    (settings?.default_canonical_url ? `${settings.default_canonical_url.replace(/\/$/, "")}${path}` : undefined);
+  
+  const baseUrl = (settings?.default_canonical_url || DEFAULT_SITE_URL).replace(/\/$/, "");
+  const canonical = seo?.canonical_url || `${baseUrl}${path === "/" ? "" : path}`;
+  
   const ogImage = seo?.og_image_url || settings?.og_default_image_url || fallbackImage || undefined;
   const twitterImage = seo?.twitter_image_url || ogImage;
+
+  const robots = noIndex
+    ? { index: false, follow: true }
+    : seo?.robots ?? undefined;
 
   return {
     title,
     description,
     keywords: keywords ?? undefined,
-    alternates: canonical ? { canonical } : undefined,
-    robots: seo?.robots ?? undefined,
+    alternates: { canonical },
+    robots,
     openGraph: {
       title: seo?.og_title || title,
       description: seo?.og_description || description,
-      images: ogImage ? [ogImage] : undefined,
+      url: canonical,
+      siteName: settings?.site_name || "Truzon Homes",
+      images: ogImage ? [{ url: ogImage }] : undefined,
+      type: "website",
     },
     twitter: {
       card: asTwitterCard(seo?.twitter_card_type || settings?.twitter_card_default_type),
@@ -134,7 +155,7 @@ export function articleJsonLd(post: CmsBlogPost, siteUrl: string) {
 
 export function propertyJsonLd(property: CmsProperty, siteUrl: string) {
   const title = property.seo?.seo_title || property.name;
-  const description = property.seo?.meta_description || "";
+  const description = property.seo?.meta_description || property.description || "";
   return {
     "@context": "https://schema.org",
     "@type": ["Product", "RealEstateListing"],
@@ -151,3 +172,33 @@ export function propertyJsonLd(property: CmsProperty, siteUrl: string) {
     },
   };
 }
+
+export function faqJsonLd(items: Array<{ question: string; answer: string }>) {
+  if (!items || items.length === 0) return null;
+  return {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    mainEntity: items.map((item) => ({
+      "@type": "Question",
+      name: item.question,
+      acceptedAnswer: {
+        "@type": "Answer",
+        text: item.answer,
+      },
+    })),
+  };
+}
+
+export function breadcrumbJsonLd(crumbs: Array<{ name: string; url?: string }>, siteUrl: string) {
+  return {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    itemListElement: crumbs.map((crumb, index) => ({
+      "@type": "ListItem",
+      position: index + 1,
+      name: crumb.name,
+      ...(crumb.url ? { item: crumb.url.startsWith("http") ? crumb.url : `${siteUrl}${crumb.url}` } : {}),
+    })),
+  };
+}
+

@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import dynamic from "next/dynamic";
+import nextDynamic from "next/dynamic";
 import { Hero, type HeroSlide } from "@/modules/content/Hero";
 import { getPage, getSettings } from "@/modules/content/api";
 import { toTelHref } from "@/modules/content/mappers";
@@ -9,6 +9,7 @@ import { listCategories, listProperties } from "@/modules/properties/api";
 import { toProperty } from "@/modules/properties/mappers";
 import { listBlogPosts } from "@/modules/blog/api";
 import { toBlogPost } from "@/modules/blog/mappers";
+import { BLOG_POSTS } from "@/modules/blog/constants";
 import { listTestimonials } from "@/modules/testimonials/api";
 import { toTestimonial } from "@/modules/testimonials/mappers";
 import { CONTACT_INFO } from "@/lib/constants/navigation";
@@ -18,15 +19,18 @@ import type { FaqItem } from "@/modules/content/types";
 // Below-the-fold sections — code-split out of the initial JS bundle (still
 // server-rendered, `ssr` defaults to true) since none of them are needed
 // for first paint or LCP, which are both owned by Hero above.
-const ExploreCategories = dynamic(() =>
+const ExploreCategories = nextDynamic(() =>
   import("@/modules/properties/ExploreCategories").then((m) => m.ExploreCategories)
 );
-const WhyChooseUs = dynamic(() => import("@/modules/content/WhyChooseUs").then((m) => m.WhyChooseUs));
-const Stats = dynamic(() => import("@/modules/content/Stats").then((m) => m.Stats));
-const Testimonials = dynamic(() => import("@/modules/content/Testimonials").then((m) => m.Testimonials));
-const LatestInsights = dynamic(() => import("@/modules/blog/LatestInsights").then((m) => m.LatestInsights));
-const FAQ = dynamic(() => import("@/modules/content/FAQ").then((m) => m.FAQ));
-const CTA = dynamic(() => import("@/modules/content/CTA").then((m) => m.CTA));
+const WhyChooseUs = nextDynamic(() => import("@/modules/content/WhyChooseUs").then((m) => m.WhyChooseUs));
+const Stats = nextDynamic(() => import("@/modules/content/Stats").then((m) => m.Stats));
+const Testimonials = nextDynamic(() => import("@/modules/content/Testimonials").then((m) => m.Testimonials));
+const LatestInsights = nextDynamic(() => import("@/modules/blog/LatestInsights").then((m) => m.LatestInsights));
+const FAQ = nextDynamic(() => import("@/modules/content/FAQ").then((m) => m.FAQ));
+const CTA = nextDynamic(() => import("@/modules/content/CTA").then((m) => m.CTA));
+
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
 
 export async function generateMetadata(): Promise<Metadata> {
   const [homePage, settings] = await Promise.all([getPage("home").catch(() => null), getSettings().catch(() => null)]);
@@ -74,8 +78,9 @@ export default async function Home() {
     ]);
 
   const properties = propertyItems.map(toProperty);
-  const posts = blogItems.map(toBlogPost);
+  const posts = blogItems.length > 0 ? blogItems.map(toBlogPost) : BLOG_POSTS.slice(0, 3);
   const testimonials = cmsTestimonials.map(toTestimonial);
+
 
   const heroBlock = homePage?.blocks.find((b) => b.type === "hero_banner");
   const hero = { ...FALLBACK_HERO, ...(heroBlock?.config as Partial<typeof FALLBACK_HERO> | undefined) };

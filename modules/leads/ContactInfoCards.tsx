@@ -6,29 +6,32 @@ import type { CmsSettings } from "@/modules/content/api";
 import type { ContactCard } from "@/modules/leads/types";
 
 export function ContactInfoCards({ settings }: { settings?: CmsSettings }) {
-  const cards: ContactCard[] = settings
-    ? [
-        { icon: "office", title: "Corporate Office", lines: [settings.contact_address ?? CONTACT_INFO.address] },
-        {
-          icon: "phone",
-          title: "Call Us",
-          lines: [
-            settings.contact_phone ?? CONTACT_INFO.phoneDisplay,
-            `${settings.callback_phone ?? CONTACT_INFO.callbackPhoneDisplay} (WhatsApp)`,
-          ],
-        },
-        {
-          icon: "email",
-          title: "Email Us",
-          lines: [settings.contact_email ?? CONTACT_INFO.email, CONTACT_INFO.salesEmail],
-        },
-        {
-          icon: "clock",
-          title: "Working Hours",
-          lines: [CONTACT_INFO.workingHoursPrimary, CONTACT_INFO.workingHoursSecondary],
-        },
-      ]
-    : CONTACT_CARDS;
+  const primaryPhone = settings?.contact_phone || CONTACT_INFO.phoneDisplay;
+  const secondaryPhone = settings?.callback_phone || primaryPhone;
+  const primaryEmail = settings?.contact_email || CONTACT_INFO.email;
+  const address = settings?.contact_address || CONTACT_INFO.address;
+
+  const cards: ContactCard[] = [
+    { icon: "office", title: "Corporate Office", lines: [address] },
+    {
+      icon: "phone",
+      title: "Call Us",
+      lines: [
+        primaryPhone,
+        `${secondaryPhone} (WhatsApp)`,
+      ],
+    },
+    {
+      icon: "email",
+      title: "Email Us",
+      lines: [primaryEmail, CONTACT_INFO.salesEmail],
+    },
+    {
+      icon: "clock",
+      title: "Working Hours",
+      lines: [CONTACT_INFO.workingHoursPrimary, CONTACT_INFO.workingHoursSecondary],
+    },
+  ];
 
   return (
     <section className="py-16 lg:pt-[70px]">
