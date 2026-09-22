@@ -14,7 +14,7 @@ export function Footer({
   settings: CmsSettings;
 }) {
   return (
-    <footer className="bg-[linear-gradient(315deg,#080d1a_0%,#1f3a5f_100%)] px-6 pt-16 sm:px-10 lg:px-[60px] lg:pt-[70px]">
+    <footer className="relative z-20 isolate bg-[linear-gradient(315deg,#080d1a_0%,#1f3a5f_100%)] px-6 pt-16 sm:px-10 lg:px-[60px] lg:pt-[70px]">
       <Container padded={false}>
         <div className="flex flex-col gap-12 border-b border-[#1d2740] pb-12 lg:flex-row lg:gap-16 lg:pb-[50px]">
           <div className="lg:w-[260px] lg:shrink-0">

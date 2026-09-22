@@ -129,5 +129,60 @@ export function getDetailedProperty(
     phone: phone || DEFAULT_PHONE,
     mapProjectId: cmsProperty.map_project_id ?? null,
     brochureUrl: resolveMediaUrl(cmsProperty.brochure_url) ?? null,
+
+    heroMediaType: cmsProperty.hero_media_type ?? "image",
+    desktopHeroVideoUrl: cmsProperty.desktop_hero_video_url ? resolveMediaUrl(cmsProperty.desktop_hero_video_url) : null,
+    mobileHeroVideoUrl: cmsProperty.mobile_hero_video_url ? resolveMediaUrl(cmsProperty.mobile_hero_video_url) : null,
+    desktopHeroImageUrl: cmsProperty.desktop_hero_image_url ? resolveMediaUrl(cmsProperty.desktop_hero_image_url) : null,
+    mobileHeroImageUrl: cmsProperty.mobile_hero_image_url ? resolveMediaUrl(cmsProperty.mobile_hero_image_url) : null,
+    posterImageUrl: cmsProperty.poster_image_url ? resolveMediaUrl(cmsProperty.poster_image_url) : null,
+    heroHeading: cmsProperty.hero_heading ?? cmsProperty.name,
+    heroSubheading: cmsProperty.hero_subheading ?? cmsProperty.location_text ?? null,
+    heroOverlayStrength: cmsProperty.hero_overlay_strength ?? 40,
+    heroTextAlign: cmsProperty.hero_text_align ?? "left",
+    heroTheme: cmsProperty.hero_theme ?? "dark",
+
+    masterPlan: cmsProperty.master_plan
+      ? {
+          title: cmsProperty.master_plan.title || "Master Layout Plan",
+          description: cmsProperty.master_plan.description,
+          imageUrl: cmsProperty.master_plan.image_url ? resolveMediaUrl(cmsProperty.master_plan.image_url) : null,
+        }
+      : null,
+    floorPlans: (cmsProperty.floor_plans || []).map((f) => ({
+      name: f.name || "Floor Plan",
+      config: f.config,
+      area: f.area,
+      price: f.price,
+      imageUrl: f.image_url ? resolveMediaUrl(f.image_url) : null,
+    })),
+    locationLandmarks: (cmsProperty.location_landmarks || []).map((l) => ({
+      name: l.name,
+      category: l.category || "General",
+      distance: l.distance || "5 Mins",
+    })),
+    videoExperience: (cmsProperty.video_experience || []).map((v) => ({
+      title: v.title || "Project Video",
+      category: v.category || "Walkthrough",
+      videoUrl: v.video_url || "",
+      posterImageUrl: v.poster_image_url ? resolveMediaUrl(v.poster_image_url) : null,
+    })),
+    highlights: cmsProperty.highlights || [],
+    offers: (cmsProperty.offers || []).map((o) => ({
+      title: o.title,
+      description: o.description,
+      validUntil: o.valid_until,
+      desktopCreativeUrl: o.desktop_creative_url ? resolveMediaUrl(o.desktop_creative_url) : null,
+    })),
+    constructionUpdates: (cmsProperty.construction_updates || []).map((c) => ({
+      date: c.date,
+      stage: c.stage,
+      progress: c.progress,
+      imageUrls: (c.image_urls || []).map((url: string) => resolveMediaUrl(url)).filter(Boolean),
+    })),
+    reraNumber: cmsProperty.rera_number ?? null,
+    approvalInfo: cmsProperty.approval_info ?? "DTCP & RERA Approved",
+    disclaimerText: cmsProperty.disclaimer_text ?? null,
+    possessionDate: cmsProperty.possession_date ?? null,
   };
-}
+}

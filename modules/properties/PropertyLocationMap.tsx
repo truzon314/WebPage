@@ -417,13 +417,13 @@ export function PropertyLocationMap({ projectId, propertyName, location }: Props
   };
 
   return (
-    <div className="relative h-[420px] w-full overflow-hidden rounded-[10px] border border-gray-200">
+    <div className="relative z-0 isolate h-full w-full overflow-hidden rounded-[10px] border border-gray-200">
       <div ref={containerRef} className="h-full w-full" />
       {hasFeatures && (
         <button
           onClick={handleZoomToFit}
           title="Zoom to fit map"
-          className="absolute bottom-3 left-3 z-[400] rounded-md border border-gray-300 bg-white px-2.5 py-1.5 text-xs font-semibold text-gray-700 shadow hover:bg-gray-50"
+          className="absolute bottom-3 left-3 z-10 rounded-md border border-gray-300 bg-white px-2.5 py-1.5 text-xs font-semibold text-gray-700 shadow hover:bg-gray-50"
         >
           ⛶ Zoom to Fit
         </button>
