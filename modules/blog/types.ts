@@ -9,4 +9,6 @@ export interface BlogPost {
   image: string | StaticImageData;
   /** e.g. "6 min read" — shown on the Blog index page, not the Home preview cards. */
   readTime?: string;
+  tags?: string[];
+  publishedAt?: string;
 }

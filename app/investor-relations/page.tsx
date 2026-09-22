@@ -5,12 +5,16 @@ import { Certifications } from "@/modules/content/Certifications";
 import { CTA } from "@/modules/content/CTA";
 import { Container } from "@/components/ui/Container";
 import { CONTACT_INFO } from "@/lib/constants/navigation";
+import { buildMetadata } from "@/lib/seo";
 
-export const metadata: Metadata = {
-  title: "Investor Relations",
-  description:
-    "An overview of Truzon Homes' growth, governance, and track record for investors and financial partners, plus how to get in touch with our investor relations team.",
-};
+export function generateMetadata(): Metadata {
+  return buildMetadata({
+    path: "/investor-relations",
+    fallbackTitle: "Investor Relations & Corporate Governance",
+    fallbackDescription:
+      "An overview of Truzon Homes' growth, governance, RERA compliance, and track record for investors and financial partners.",
+  });
+}
 
 export default function InvestorRelationsPage() {
   return (

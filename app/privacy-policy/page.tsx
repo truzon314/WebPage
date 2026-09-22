@@ -2,11 +2,15 @@ import type { Metadata } from "next";
 import { PageHero } from "@/modules/content/PageHero";
 import { LegalPageBody } from "@/modules/content/LegalPageBody";
 import { CONTACT_INFO } from "@/lib/constants/navigation";
+import { buildMetadata } from "@/lib/seo";
 
-export const metadata: Metadata = {
-  title: "Privacy Policy",
-  description: "How Truzon Homes collects, uses, and protects your personal information.",
-};
+export function generateMetadata(): Metadata {
+  return buildMetadata({
+    path: "/privacy-policy",
+    fallbackTitle: "Privacy Policy",
+    fallbackDescription: "How Truzon Homes collects, uses, and protects your personal information.",
+  });
+}
 
 const SECTIONS = [
   {

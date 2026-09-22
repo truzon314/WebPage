@@ -32,6 +32,8 @@ export function Footer({
             <div className="flex flex-wrap gap-3">
               <a
                 href={settings.social_facebook_url ?? "#"}
+                target="_blank"
+                rel="noopener noreferrer"
                 aria-label="Facebook"
                 className="relative flex h-12 w-12 items-center justify-center overflow-hidden rounded-full transition-opacity hover:opacity-85 lg:h-8 lg:w-8"
               >
@@ -39,13 +41,28 @@ export function Footer({
               </a>
               <a
                 href={settings.social_instagram_url ?? "#"}
+                target="_blank"
+                rel="noopener noreferrer"
                 aria-label="Instagram"
                 className="relative flex h-12 w-12 items-center justify-center overflow-hidden rounded-full transition-opacity hover:opacity-85 lg:h-8 lg:w-8"
               >
                 <Image src="/icons/instagram(2).png" alt="" fill sizes="48px" className="object-cover" />
               </a>
+              {settings.social_linkedin_url ? (
+                <a
+                  href={settings.social_linkedin_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  aria-label="LinkedIn"
+                  className="relative flex h-12 w-12 items-center justify-center overflow-hidden rounded-full bg-[#0077b5] transition-opacity hover:opacity-85 lg:h-8 lg:w-8"
+                >
+                  <Image src="/icons/linkedin.svg" alt="" fill sizes="48px" className="object-contain p-2 lg:p-1.5" />
+                </a>
+              ) : null}
               <a
                 href={settings.social_youtube_url ?? "#"}
+                target="_blank"
+                rel="noopener noreferrer"
                 aria-label="YouTube"
                 className="relative flex h-12 w-12 items-center justify-center overflow-hidden rounded-full transition-opacity hover:opacity-85 lg:h-8 lg:w-8"
               >

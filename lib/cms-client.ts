@@ -1,10 +1,13 @@
+const PRODUCTION_BACKEND_URL = "https://truzon-backend-715189721854.asia-south1.run.app";
+
 const SERVER_CMS_URL =
   process.env.INTERNAL_CMS_URL ??
   process.env.NEXT_PUBLIC_CMS_URL ??
-  "http://localhost:8000";
+  PRODUCTION_BACKEND_URL;
 
 const BROWSER_CMS_URL =
-  process.env.NEXT_PUBLIC_CMS_URL ?? "http://localhost:8000";
+  process.env.NEXT_PUBLIC_CMS_URL ?? PRODUCTION_BACKEND_URL;
+
 
 export const PUBLIC_MEDIA_URL = "/media-files";
 
@@ -30,13 +33,16 @@ export function resolveMediaUrl(
         parsed.hostname === "127.0.0.1" ||
         parsed.hostname === "host.docker.internal")
     ) {
-      return `${PUBLIC_MEDIA_URL}${parsed.pathname.slice(
-        "/media-files".length
-      )}`;
+      const base = BROWSER_CMS_URL.replace(/\/$/, "");
+      return `${base}${parsed.pathname}`;
     }
 
     return url;
   } catch {
+    if (url.startsWith("/media-files/")) {
+      const base = BROWSER_CMS_URL.replace(/\/$/, "");
+      return `${base}${url}`;
+    }
     return url;
   }
 }

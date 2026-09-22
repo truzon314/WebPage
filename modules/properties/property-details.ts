@@ -93,44 +93,41 @@ export function getDetailedProperty(
   idOrSlug: string,
   cmsProperty?: CmsProperty | null,
   phone?: string | null
-): DetailedProperty {
-  const normalizedId = idOrSlug.toLowerCase().trim();
-  const staticProp = PROPERTIES.find((p) => p.id.toLowerCase() === normalizedId);
+): DetailedProperty | null {
+  if (!cmsProperty) {
+    const normalizedId = idOrSlug.toLowerCase().trim();
+    const staticProp = PROPERTIES.find((p) => p.id.toLowerCase() === normalizedId);
+    if (!staticProp) return null;
 
-  let baseProp = staticProp;
-
-  if (cmsProperty) {
-    baseProp = toProperty(cmsProperty);
+    return {
+      ...staticProp,
+      description: DESCRIPTIONS[normalizedId] || "",
+      gallery: GALLERIES[normalizedId] || [staticProp.image],
+      amenities: AMENITIES_CATALOG[normalizedId] || AMENITIES_CATALOG["default"],
+      phone: phone || DEFAULT_PHONE,
+      mapProjectId: null,
+      brochureUrl: null,
+    };
   }
 
-  if (!baseProp) {
-    baseProp = staticProp ?? PROPERTIES[0];
-  }
+  const baseProp = toProperty(cmsProperty);
 
-  const description = cmsProperty?.description || DESCRIPTIONS[normalizedId] || "";
+  const gallery = (cmsProperty.gallery || [])
+    .map((url) => resolveMediaUrl(url))
+    .filter((url): url is string => Boolean(url));
 
-  const gallery =
-    cmsProperty?.gallery && cmsProperty.gallery.length > 0
-      ? cmsProperty.gallery
-          .map((url) => resolveMediaUrl(url))
-          .filter((url): url is string => Boolean(url))
-      : GALLERIES[normalizedId] || [baseProp.image, projGrand, projRv, heroPhoto3];
-
-  const amenities: PropertyAmenity[] =
-    cmsProperty?.amenities && cmsProperty.amenities.length > 0
-      ? cmsProperty.amenities.map((a) => ({
-          name: a.name,
-          image: resolveMediaUrl(a.image_url) ?? undefined,
-        }))
-      : AMENITIES_CATALOG[normalizedId] || AMENITIES_CATALOG["default"];
+  const amenities: PropertyAmenity[] = (cmsProperty.amenities || []).map((a) => ({
+    name: a.name,
+    image: resolveMediaUrl(a.image_url) ?? undefined,
+  }));
 
   return {
     ...baseProp,
-    description,
-    gallery,
+    description: cmsProperty.description || "",
+    gallery: gallery.length > 0 ? gallery : [baseProp.image],
     amenities,
     phone: phone || DEFAULT_PHONE,
-    mapProjectId: cmsProperty?.map_project_id ?? null,
-    brochureUrl: resolveMediaUrl(cmsProperty?.brochure_url) ?? null,
+    mapProjectId: cmsProperty.map_project_id ?? null,
+    brochureUrl: resolveMediaUrl(cmsProperty.brochure_url) ?? null,
   };
 }

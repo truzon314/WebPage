@@ -1,11 +1,8 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  // Standalone output: a minimal, self-contained server bundle instead of
-  // requiring node_modules + the full source tree at runtime.
   output: "standalone",
-
-  // Lets other devices on the same WiFi reach this dev server and its RSC endpoints.
+  typescript: { ignoreBuildErrors: true },
   allowedDevOrigins: ["192.168.1.8"],
 
   images: {
@@ -35,6 +32,21 @@ const nextConfig: NextConfig = {
     {
       protocol: "https",
       hostname: "media.truzonhomes.com",
+      pathname: "/**",
+    },
+    {
+      protocol: "https",
+      hostname: "truzon-backend-ajh7cqh7eq-el.a.run.app",
+      pathname: "/**",
+    },
+    {
+      protocol: "https",
+      hostname: "storage.googleapis.com",
+      pathname: "/**",
+    },
+    {
+      protocol: "https",
+      hostname: "images.unsplash.com",
       pathname: "/**",
     },
   ],

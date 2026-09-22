@@ -14,25 +14,36 @@ import { cn } from "@/lib/utils";
 // on every page load.
 const CONVERSATION_ID_KEY = "chat_conversation_id";
 const POLL_MS = 4_000;
+const CHAT_MESSAGES_KEY = "chat_local_messages";
+const DEFAULT_AUTO_REPLY =
+  "Thank you for reaching out to Truzon Homes! Our property consultants have received your message and will connect with you shortly.";
+
 
 export function LiveChatWidget() {
   const { mapInView } = useFloatingWidgets();
   const [open, setOpen] = useState(false);
-  const [conversationId, setConversationId] = useState<string | null>(() => {
-    if (typeof window === "undefined") return null;
-    return window.localStorage.getItem(CONVERSATION_ID_KEY);
-  });
+  const [conversationId, setConversationId] = useState<string | null>(null);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [isTyping, setIsTyping] = useState(false);
   const [input, setInput] = useState("");
   const [sending, setSending] = useState(false);
   const [contactName, setContactName] = useState("");
   const [contactPhone, setContactPhone] = useState("");
   const [contactEmail, setContactEmail] = useState("");
   const [contactError, setContactError] = useState("");
-  const [knownContact, setKnownContact] = useState<VisitorContact | null>(() => {
-    if (typeof window === "undefined") return null;
-    return getStoredVisitorContact();
-  });
+  const [knownContact, setKnownContact] = useState<VisitorContact | null>(null);
+
+  useEffect(() => {
+    try {
+      const savedConv = window.localStorage.getItem(CONVERSATION_ID_KEY);
+      if (savedConv) setConversationId(savedConv);
+      const raw = window.localStorage.getItem(CHAT_MESSAGES_KEY);
+      if (raw) setMessages(JSON.parse(raw));
+      setKnownContact(getStoredVisitorContact());
+    } catch {
+      // safe fallback
+    }
+  }, []);
   const [prevOpen, setPrevOpen] = useState(open);
   if (prevOpen !== open) {
     setPrevOpen(open);
@@ -45,12 +56,28 @@ export function LiveChatWidget() {
   }
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
+  // Sync messages to localStorage
+  useEffect(() => {
+    if (messages.length > 0 && typeof window !== "undefined") {
+      try {
+        window.localStorage.setItem(CHAT_MESSAGES_KEY, JSON.stringify(messages));
+      } catch {
+        // ignore
+      }
+    }
+  }, [messages]);
+
   // No stored conversation yet AND no contact details captured elsewhere
-  // (e.g. a property's "View Availability" unlock form) means this visitor
-  // hasn't been identified — the pre-chat fields collect that once,
-  // alongside their first message. A visitor who already gave their
-  // details somewhere else on the site skips straight to chatting.
-  const needsContactForm = !conversationId && !knownContact;
+  const needsContactForm = !conversationId && !knownContact && messages.length === 0;
+
+  const resetStaleConversation = () => {
+    setConversationId(null);
+    setMessages([]);
+    if (typeof window !== "undefined") {
+      window.localStorage.removeItem(CONVERSATION_ID_KEY);
+      window.localStorage.removeItem(CHAT_MESSAGES_KEY);
+    }
+  };
 
   useEffect(() => {
     if (!open || !conversationId) return;
@@ -59,10 +86,13 @@ export function LiveChatWidget() {
     const poll = async () => {
       try {
         const latest = await getMessages(conversationId);
-        if (!cancelled) setMessages(latest);
-      } catch {
-        // Transient network hiccups shouldn't surface as errors in a
-        // background poll — the next tick will just retry.
+        if (!cancelled && latest.length > 0) {
+          setMessages(latest);
+        }
+      } catch (err) {
+        if (err instanceof Error && (err.message.includes("not found") || err.message.includes("404"))) {
+          resetStaleConversation();
+        }
       }
     };
 
@@ -76,7 +106,7 @@ export function LiveChatWidget() {
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ block: "nearest" });
-  }, [messages.length]);
+  }, [messages.length, isTyping]);
 
   const handleSend = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -85,41 +115,66 @@ export function LiveChatWidget() {
 
     let contact: VisitorContact | undefined;
     let freshlyCaptured = false;
-    if (!conversationId) {
-      if (knownContact) {
-        contact = knownContact;
-      } else if (contactName.trim() && contactPhone.trim()) {
+    if (!conversationId && !knownContact) {
+      if (contactName.trim() && contactPhone.trim()) {
         contact = { name: contactName.trim(), phone: contactPhone.trim(), email: contactEmail.trim() || undefined };
         freshlyCaptured = true;
       } else {
         setContactError("Please add your name and phone number.");
         return;
       }
+    } else if (knownContact) {
+      contact = knownContact;
     }
 
     setContactError("");
     setSending(true);
     setInput("");
+
+    // Optimistically add user's message
+    const userMessage: ChatMessage = {
+      id: `local-${Date.now()}`,
+      sender: "visitor",
+      body,
+      createdAt: new Date().toISOString(),
+    };
+    setMessages((prev) => [...prev, userMessage]);
+    setIsTyping(true);
+
+    if (contact && freshlyCaptured) {
+      setStoredVisitorContact(contact);
+      setKnownContact(contact);
+    }
+
     try {
-      const result = await postVisitorMessage(conversationId, body, contact);
-      setMessages(result.messages);
-      if (!conversationId) {
+      let result;
+      try {
+        result = await postVisitorMessage(conversationId, body, contact);
+      } catch (err) {
+        if (conversationId && err instanceof Error && err.message.includes("not found")) {
+          // Stale conversation (e.g. deleted on backend) — clear local storage and retry creating a new thread
+          resetStaleConversation();
+          result = await postVisitorMessage(null, body, contact);
+        } else {
+          throw err;
+        }
+      }
+
+      if (result.conversationId) {
         setConversationId(result.conversationId);
         if (typeof window !== "undefined") {
           window.localStorage.setItem(CONVERSATION_ID_KEY, result.conversationId);
         }
-        if (contact && freshlyCaptured) {
-          setStoredVisitorContact(contact);
-          setKnownContact(contact);
-        }
       }
-    } catch {
-      // Leave the visitor's typed text as-is on failure so they don't lose it.
-      setInput(body);
+      setMessages(result.messages);
+    } catch (err) {
+      console.error("Failed to post message:", err);
     } finally {
+      setIsTyping(false);
       setSending(false);
     }
   };
+
 
   return (
     <div
@@ -198,8 +253,17 @@ export function LiveChatWidget() {
                   </div>
                 ))
               )}
+              {isTyping && (
+                <div className="self-start flex items-center gap-1.5 rounded-lg bg-navy-950/5 px-3 py-2 text-xs text-text-muted">
+                  <span className="inline-block h-1.5 w-1.5 animate-bounce rounded-full bg-navy-800" />
+                  <span className="inline-block h-1.5 w-1.5 animate-bounce rounded-full bg-navy-800 [animation-delay:0.2s]" />
+                  <span className="inline-block h-1.5 w-1.5 animate-bounce rounded-full bg-navy-800 [animation-delay:0.4s]" />
+                  <span className="ml-1 text-[11px]">Truzon Advisor is typing...</span>
+                </div>
+              )}
               <div ref={messagesEndRef} />
             </div>
+
 
             <form onSubmit={handleSend} className="flex items-center gap-2 border-t border-divider px-3 py-3">
               <input

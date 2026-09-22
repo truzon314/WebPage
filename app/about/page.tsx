@@ -3,7 +3,10 @@ import dynamic from "next/dynamic";
 import { PageHero } from "@/modules/content/PageHero";
 import { CmsBlockRenderer } from "@/modules/content/CmsBlockRenderer";
 import { getPage, getSettings } from "@/modules/content/api";
-import { buildMetadata } from "@/lib/seo";
+import { JsonLd } from "@/components/seo/JsonLd";
+import { breadcrumbJsonLd, buildMetadata } from "@/lib/seo";
+
+const SITE_URL = "https://www.truzonhomes.com";
 
 // Below-the-fold sections — code-split out of the initial JS bundle (still
 // server-rendered) since OurStory above already owns first paint here.
@@ -41,6 +44,15 @@ export default async function AboutPage() {
 
   return (
     <>
+      <JsonLd
+        data={breadcrumbJsonLd(
+          [
+            { name: "Home", url: "/" },
+            { name: "About", url: "/about" },
+          ],
+          SITE_URL
+        )}
+      />
       <PageHero
         title="About Truzon Homes"
         subtitle="15+ years of building legacies across Hyderabad and Bangalore — one architecturally considered home at a time."

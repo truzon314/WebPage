@@ -6,7 +6,10 @@ import { ContactMap } from "@/modules/leads/ContactMap";
 import { Container } from "@/components/ui/Container";
 import { getPage, getSettings } from "@/modules/content/api";
 import { listCategories } from "@/modules/properties/api";
-import { buildMetadata } from "@/lib/seo";
+import { JsonLd } from "@/components/seo/JsonLd";
+import { breadcrumbJsonLd, buildMetadata } from "@/lib/seo";
+
+const SITE_URL = "https://www.truzonhomes.com";
 
 export async function generateMetadata(): Promise<Metadata> {
   const [contactPage, settings] = await Promise.all([
@@ -34,6 +37,15 @@ export default async function ContactPage() {
 
   return (
     <>
+      <JsonLd
+        data={breadcrumbJsonLd(
+          [
+            { name: "Home", url: "/" },
+            { name: "Contact", url: "/contact" },
+          ],
+          SITE_URL
+        )}
+      />
       <PageHero
         title="Get in Touch"
         subtitle="Book a site visit, request a callback, or ask us anything — our consultants respond within one business day."

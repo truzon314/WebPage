@@ -2,11 +2,15 @@ import type { Metadata } from "next";
 import { PageHero } from "@/modules/content/PageHero";
 import { LegalPageBody } from "@/modules/content/LegalPageBody";
 import { CONTACT_INFO } from "@/lib/constants/navigation";
+import { buildMetadata } from "@/lib/seo";
 
-export const metadata: Metadata = {
-  title: "Terms of Service",
-  description: "The terms that govern your use of the Truzon Homes website.",
-};
+export function generateMetadata(): Metadata {
+  return buildMetadata({
+    path: "/terms-of-service",
+    fallbackTitle: "Terms of Service",
+    fallbackDescription: "The terms that govern your use of the Truzon Homes website and services.",
+  });
+}
 
 const SECTIONS = [
   {

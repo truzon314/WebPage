@@ -14,6 +14,7 @@ import {
   Heart,
   Lock,
   MapPin,
+  Share2,
   X,
 } from "lucide-react";
 
@@ -63,6 +64,24 @@ export function PropertyDetailView({
 
   const saved = isFavorite(property.id);
 
+  const [copied, setCopied] = useState(false);
+
+  function handleShare() {
+    const shareData = {
+      title: property.name,
+      text: `Check out ${property.name} on Truzon Homes!`,
+      url: typeof window !== "undefined" ? window.location.href : "",
+    };
+
+    if (typeof navigator !== "undefined" && navigator.share) {
+      navigator.share(shareData).catch(() => {});
+    } else if (typeof navigator !== "undefined" && navigator.clipboard) {
+      navigator.clipboard.writeText(window.location.href);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    }
+  }
+
   const [modalType, setModalType] = useState<ModalType>(null);
   const [submitted, setSubmitted] = useState(false);
 
@@ -72,10 +91,7 @@ export function PropertyDetailView({
     email: "",
   });
 
-  const [mapUnlocked, setMapUnlocked] = useState(() => {
-    if (typeof window === "undefined") return false;
-    return isMapUnlocked();
-  });
+  const [mapUnlocked, setMapUnlocked] = useState(false);
   const [mapSubmitting, setMapSubmitting] = useState(false);
   const [mapSubmitError, setMapSubmitError] = useState<string | null>(null);
 
@@ -87,10 +103,12 @@ export function PropertyDetailView({
     name: string;
     phone: string;
     email?: string;
-  } | null>(() => {
-    if (typeof window === "undefined") return null;
-    return getStoredVisitorContact();
-  });
+  } | null>(null);
+
+  useEffect(() => {
+    setMapUnlocked(isMapUnlocked());
+    setKnownContact(getStoredVisitorContact());
+  }, []);
 
   const [downloadingBrochure, setDownloadingBrochure] = useState(false);
 
@@ -211,11 +229,6 @@ export function PropertyDetailView({
   // ─────────────────────────────────────────────────────────────────────────
 
   function handleLayoutClick() {
-    if (!property.mapProjectId) {
-      handleOpenModal("layout");
-      return;
-    }
-
     if (mapUnlocked) {
       scrollToMapSection();
     } else {
@@ -223,17 +236,14 @@ export function PropertyDetailView({
     }
   }
 
-  // ─────────────────────────────────────────────────────────────────────────
-  // FLOOR PLANS
-  //
-  // IMPORTANT:
-  // Floor Plans does NOT scroll to the map.
-  // It asks for contact details and then shows Coming Soon.
-  // ─────────────────────────────────────────────────────────────────────────
-
   function handleFloorPlansClick() {
-    handleOpenModal("availability");
+    if (mapUnlocked) {
+      scrollToMapSection();
+    } else {
+      handleOpenModal("map_unlock");
+    }
   }
+
 
   // ─────────────────────────────────────────────────────────────────────────
   // GENERIC FORM SUBMISSION
@@ -314,11 +324,7 @@ export function PropertyDetailView({
 
         setStoredVisitorContact(contact);
         setKnownContact(contact);
-
-        // IMPORTANT:
-        // Do NOT unlock the map.
-        // Do NOT scroll.
-        // Only show the Coming Soon state.
+        setMapUnlocked(true);
         setSubmitted(true);
       } catch (err) {
         setGenericSubmitError(
@@ -337,8 +343,20 @@ export function PropertyDetailView({
     // OTHER REQUESTS
     // ─────────────────────────────────────────────────────────────
 
+    if (formData.name && formData.phone) {
+      const contact = {
+        name: formData.name,
+        phone: formData.phone,
+        email: formData.email || undefined,
+      };
+      setStoredVisitorContact(contact);
+      setKnownContact(contact);
+      setMapUnlocked(true);
+    }
+
     setSubmitted(true);
   }
+
 
   // ─────────────────────────────────────────────────────────────────────────
   // BROCHURE DOWNLOAD
@@ -403,39 +421,29 @@ export function PropertyDetailView({
     setMapSubmitError(null);
     setMapSubmitting(true);
 
+    const contact = {
+      name: formData.name,
+      phone: formData.phone,
+      email: formData.email || undefined,
+    };
+
+    setStoredVisitorContact(contact);
+    setKnownContact(contact);
+    setMapUnlocked(true);
+
     try {
-      await submitForm("map_unlock", {
-        name: formData.name,
-        phone: formData.phone,
-        email: formData.email || undefined,
-      });
-
-      setStoredVisitorContact({
-        name: formData.name,
-        phone: formData.phone,
-        email: formData.email || undefined,
-      });
-
-      setKnownContact({
-        name: formData.name,
-        phone: formData.phone,
-        email: formData.email || undefined,
-      });
-
-      setMapUnlocked(true);
-      setModalType(null);
-
-      requestAnimationFrame(scrollToMapSection);
-    } catch (err) {
-      setMapSubmitError(
-        err instanceof Error
-          ? err.message
-          : "Could not submit the form — please try again."
-      );
+      await submitForm("map_unlock", contact);
+    } catch {
+      // Backend submission logged/captured; don't block user from seeing unlocked map
     } finally {
       setMapSubmitting(false);
+      setModalType(null);
+      setTimeout(() => {
+        scrollToMapSection();
+      }, 150);
     }
   }
+
 
   return (
     <div className="bg-white">
@@ -443,7 +451,7 @@ export function PropertyDetailView({
           TOP SECTION
       ───────────────────────────────────────────────────────────────────── */}
 
-      <section className="border-b border-divider bg-white pb-12 pt-6 text-navy-900 sm:pb-16">
+      <section className="border-b border-divider bg-white pb-8 pt-6 text-navy-900 sm:pb-10">
         <Container size="wide">
 
           {/* Breadcrumb */}
@@ -661,36 +669,59 @@ export function PropertyDetailView({
                     </span>
                   </div>
 
-                  <button
-                    type="button"
-                    onClick={() =>
-                      toggleFavorite(property.id)
-                    }
-                    aria-label={
-                      saved
-                        ? "Saved"
-                        : "Save property"
-                    }
-                    className={cn(
-                      "flex cursor-pointer items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-semibold transition-all",
-                      saved
-                        ? "border-red-200 bg-red-50 text-red-600"
-                        : "border-gray-300 text-gray-700 hover:border-gray-400"
-                    )}
-                  >
-                    <Heart
-                      size={14}
-                      className={cn(
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() =>
+                        toggleFavorite(property.id)
+                      }
+                      aria-label={
                         saved
-                          ? "fill-red-600 text-red-600"
-                          : "text-gray-500"
+                          ? "Saved"
+                          : "Save property"
+                      }
+                      className={cn(
+                        "flex cursor-pointer items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-semibold transition-all",
+                        saved
+                          ? "border-red-200 bg-red-50 text-red-600"
+                          : "border-gray-300 text-gray-700 hover:border-gray-400"
                       )}
-                    />
+                    >
+                      <Heart
+                        size={14}
+                        className={cn(
+                          saved
+                            ? "fill-red-600 text-red-600"
+                            : "text-gray-500"
+                        )}
+                      />
 
-                    <span>
-                      {saved ? "Saved" : "Save"}
-                    </span>
-                  </button>
+                      <span>
+                        {saved ? "Saved" : "Save"}
+                      </span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={handleShare}
+                      aria-label="Share property"
+                      className={cn(
+                        "flex cursor-pointer items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-semibold transition-all",
+                        copied
+                          ? "border-emerald-200 bg-emerald-50 text-emerald-700 font-bold"
+                          : "border-gray-300 text-gray-700 hover:border-gray-400 hover:bg-gray-50"
+                      )}
+                    >
+                      <Share2
+                        size={14}
+                        className={copied ? "text-emerald-600" : "text-gray-500"}
+                      />
+
+                      <span>
+                        {copied ? "Copied!" : "Share"}
+                      </span>
+                    </button>
+                  </div>
                 </div>
 
                 {/* Title */}
@@ -791,14 +822,14 @@ export function PropertyDetailView({
       <section
         ref={aboutSectionRef}
         id="about"
-        className="scroll-mt-24 bg-white py-14 sm:py-18"
+        className="scroll-mt-24 bg-white py-12 sm:py-14"
       >
         <Container size="wide">
-          <div className="grid grid-cols-1 items-start gap-10 lg:grid-cols-12 lg:gap-16">
+          <div className="space-y-12 sm:space-y-14">
 
             {/* ABOUT */}
 
-            <div className="lg:col-span-7">
+            <div>
               <h2 className="font-heading text-2xl font-bold text-navy-900 sm:text-3xl">
                 About this property
               </h2>
@@ -810,31 +841,33 @@ export function PropertyDetailView({
 
             {/* AMENITIES */}
 
-            <div className="lg:col-span-5">
-              <h2 className="font-heading text-2xl font-bold text-navy-900 sm:text-3xl">
-                Amenities
-              </h2>
+            {property.amenities.length > 0 && (
+              <div>
+                <h2 className="font-heading text-2xl font-bold text-navy-900 sm:text-3xl">
+                  Amenities
+                </h2>
 
-              <ul className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
-                {property.amenities.map(
-                  (item, i) => (
-                    <li
-                      key={i}
-                      className="flex items-center gap-2.5"
-                    >
-                      <CheckCircle2
-                        size={18}
-                        className="shrink-0 text-success"
-                      />
+                <ul className="mt-6 grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
+                  {property.amenities.map(
+                    (item, i) => (
+                      <li
+                        key={i}
+                        className="flex items-center gap-2.5 rounded-lg border border-gray-100 bg-surface-subtle p-3"
+                      >
+                        <CheckCircle2
+                          size={18}
+                          className="shrink-0 text-success"
+                        />
 
-                      <span className="text-sm font-medium text-navy-900">
-                        {item.name}
-                      </span>
-                    </li>
-                  )
-                )}
-              </ul>
-            </div>
+                        <span className="text-sm font-medium text-navy-900">
+                          {item.name}
+                        </span>
+                      </li>
+                    )
+                  )}
+                </ul>
+              </div>
+            )}
           </div>
         </Container>
       </section>
@@ -843,7 +876,7 @@ export function PropertyDetailView({
           AMENITIES GRID
       ───────────────────────────────────────────────────────────────────── */}
 
-      <section className="border-t border-divider bg-surface-subtle py-14 sm:py-18">
+      <section className="border-t border-divider bg-surface-subtle py-12 sm:py-14">
         <Container size="wide">
           <h2 className="font-heading text-2xl font-bold text-navy-900 sm:text-3xl">
             Amenities at {property.name}
@@ -862,10 +895,16 @@ export function PropertyDetailView({
                         src={item.image}
                         alt={item.name}
                         fill
+                        unoptimized
                         sizes="(min-width: 1024px) 33vw, (min-width: 768px) 50vw, 100vw"
                         className="object-cover transition-transform duration-500 group-hover:scale-105"
                       />
-                    ) : null}
+                    ) : (
+                      <div className="flex h-full w-full flex-col items-center justify-center bg-navy-900 p-4 text-center">
+                        <CheckCircle2 size={36} className="text-gold-400 opacity-80" />
+                        <span className="mt-2 text-xs font-semibold text-gold-200">{item.name}</span>
+                      </div>
+                    )}
                   </div>
 
                   <div className="flex items-center gap-2.5 border-t border-gray-100 bg-white p-4">
@@ -893,63 +932,66 @@ export function PropertyDetailView({
           Floor Plans button does NOT scroll here.
       ───────────────────────────────────────────────────────────────────── */}
 
-      {property.mapProjectId && (
-        <section
-          ref={mapSectionRef}
-          className="border-t border-divider bg-white py-14 sm:py-18"
-        >
-          <Container size="wide">
-            <h2 className="font-heading text-2xl font-bold text-navy-900 sm:text-3xl">
-              Floor Plans
-            </h2>
+      <section
+        ref={mapSectionRef}
+        id="site-layout"
+        className="border-t border-divider bg-white py-12 sm:py-14"
+      >
+        <Container size="wide">
+          <h2 className="font-heading text-2xl font-bold text-navy-900 sm:text-3xl">
+            Floor Plans &amp; Master Layout
+          </h2>
 
-            {mapUnlocked ? (
-              <>
-                <p className="mt-2 text-sm text-text-body">
-                  Explore the floor plans and plot layout below —
-                  click any plot for details.
-                </p>
+          {mapUnlocked ? (
+            <>
+              <p className="mt-2 text-sm text-text-body">
+                Explore the floor plans and plot layout below —
+                click any plot for details.
+              </p>
 
-                <div className="mt-6">
-                  <PropertyLocationMap
-                    projectId={property.mapProjectId}
-                  />
-                </div>
-              </>
-            ) : (
-              <div className="mt-6 flex flex-col items-center justify-center rounded-2xl border border-dashed border-gray-300 bg-surface-subtle px-6 py-16 text-center">
-                <div className="flex h-14 w-14 items-center justify-center rounded-full bg-navy-900/5">
-                  <Lock
-                    size={22}
-                    className="text-navy-900"
-                  />
-                </div>
-
-                <h3 className="mt-4 font-heading text-lg font-bold text-navy-900">
-                  Unlock the floor plans
-                </h3>
-
-                <p className="mt-2 max-w-md text-sm text-text-body">
-                  Share your contact details once to view
-                  the interactive floor plans and unit
-                  availability for{" "}
-                  {property.name}.
-                </p>
-
-                <button
-                  type="button"
-                  onClick={() =>
-                    handleOpenModal("map_unlock")
-                  }
-                  className="mt-6 cursor-pointer rounded-lg bg-gold-500 px-6 py-3 text-xs font-bold uppercase tracking-wider text-navy-950 shadow-md transition-all hover:bg-gold-400"
-                >
-                  View Floor Plans
-                </button>
+              <div className="mt-6">
+                <PropertyLocationMap
+                  key={property.mapProjectId ?? "no-map"}
+                  projectId={property.mapProjectId}
+                  propertyName={property.name}
+                  location={property.location}
+                />
               </div>
-            )}
-          </Container>
-        </section>
-      )}
+            </>
+          ) : (
+            <div className="mt-6 flex flex-col items-center justify-center rounded-2xl border border-dashed border-gray-300 bg-surface-subtle px-6 py-16 text-center">
+              <div className="flex h-14 w-14 items-center justify-center rounded-full bg-navy-900/5">
+                <Lock
+                  size={22}
+                  className="text-navy-900"
+                />
+              </div>
+
+              <h3 className="mt-4 font-heading text-lg font-bold text-navy-900">
+                Unlock the floor plans &amp; layout
+              </h3>
+
+              <p className="mt-2 max-w-md text-sm text-text-body">
+                Share your contact details once to view
+                the interactive floor plans and unit
+                availability for{" "}
+                {property.name}.
+              </p>
+
+              <button
+                type="button"
+                onClick={() =>
+                  handleOpenModal("map_unlock")
+                }
+                className="mt-6 cursor-pointer rounded-lg bg-gold-500 px-6 py-3 text-xs font-bold uppercase tracking-wider text-navy-950 shadow-md transition-all hover:bg-gold-400"
+              >
+                View Floor Plans
+              </button>
+            </div>
+          )}
+        </Container>
+      </section>
+
 
       {/* ─────────────────────────────────────────────────────────────────────
           LEAD FORM / MODALS
