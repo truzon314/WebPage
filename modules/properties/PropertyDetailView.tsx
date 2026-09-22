@@ -14,8 +14,14 @@ import {
   Heart,
   Lock,
   MapPin,
+  MessageSquare,
+  PhoneCall,
+  Play,
   Share2,
+  ShieldCheck,
+  Sparkles,
   X,
+  ZoomIn,
 } from "lucide-react";
 
 import { Container } from "@/components/ui/Container";
@@ -30,7 +36,6 @@ import {
 } from "@/modules/leads/visitorContact";
 import { useFloatingWidgets } from "@/modules/layout/FloatingWidgetsContext";
 
-// Leaflet touches `window` at module load — must stay out of the SSR bundle.
 const PropertyLocationMap = dynamic(
   () =>
     import("@/modules/properties/PropertyLocationMap").then(
@@ -43,8 +48,6 @@ interface PropertyDetailViewProps {
   property: DetailedProperty;
 }
 
-// ─── Modal types ─────────────────────────────────────────────────────────────
-
 type ModalType =
   | "callback"
   | "brochure"
@@ -52,18 +55,21 @@ type ModalType =
   | "tour"
   | "availability"
   | "map_unlock"
+  | "master_plan_zoom"
+  | "floor_plan_zoom"
+  | "video_lightbox"
   | null;
 
-export function PropertyDetailView({
-  property,
-}: PropertyDetailViewProps) {
+export function PropertyDetailView({ property }: PropertyDetailViewProps) {
   const [activeImageIndex, setActiveImageIndex] = useState(0);
+  const [activeFloorPlanIndex, setActiveFloorPlanIndex] = useState(0);
+  const [activeVideoUrl, setActiveVideoUrl] = useState<string | null>(null);
+  const [zoomedPlanImageUrl, setZoomedPlanImageUrl] = useState<string | null>(null);
 
   const { isFavorite, toggle: toggleFavorite } = useFavorites();
   const { setMapInView } = useFloatingWidgets();
 
   const saved = isFavorite(property.id);
-
   const [copied, setCopied] = useState(false);
 
   function handleShare() {
@@ -92,12 +98,8 @@ export function PropertyDetailView({
   });
 
   const [mapUnlocked, setMapUnlocked] = useState(false);
-  const [mapSubmitting, setMapSubmitting] = useState(false);
-  const [mapSubmitError, setMapSubmitError] = useState<string | null>(null);
-
   const [genericSubmitting, setGenericSubmitting] = useState(false);
-  const [genericSubmitError, setGenericSubmitError] =
-    useState<string | null>(null);
+  const [genericSubmitError, setGenericSubmitError] = useState<string | null>(null);
 
   const [knownContact, setKnownContact] = useState<{
     name: string;
@@ -115,43 +117,29 @@ export function PropertyDetailView({
   const mapSectionRef = useRef<HTMLDivElement>(null);
   const aboutSectionRef = useRef<HTMLDivElement>(null);
 
-  const activeImage =
-    property.gallery[activeImageIndex] || property.image;
-
-  // ─────────────────────────────────────────────────────────────────────────
-  // MAP VISIBILITY / FLOATING WIDGETS
-  // ─────────────────────────────────────────────────────────────────────────
+  const activeImage = property.gallery[activeImageIndex] || property.image;
 
   useEffect(() => {
     const section = mapSectionRef.current;
-
     if (!section) return;
 
     const observer = new IntersectionObserver(
       ([entry]) => {
         setMapInView(entry.isIntersecting);
       },
-      {
-        threshold: 0.1,
-      }
+      { threshold: 0.1 }
     );
 
     observer.observe(section);
-
     return () => {
       observer.disconnect();
       setMapInView(false);
     };
   }, [setMapInView]);
 
-  // ─────────────────────────────────────────────────────────────────────────
-  // MODALS
-  // ─────────────────────────────────────────────────────────────────────────
-
   function handleOpenModal(type: ModalType) {
     setModalType(type);
     setSubmitted(false);
-    setMapSubmitError(null);
     setGenericSubmitError(null);
 
     if (knownContact) {
@@ -166,103 +154,23 @@ export function PropertyDetailView({
   function handleCloseModal() {
     setModalType(null);
     setSubmitted(false);
-    setMapSubmitError(null);
     setGenericSubmitError(null);
   }
 
-  // ─────────────────────────────────────────────────────────────────────────
-  // SCROLL TO ABOUT
-  // ─────────────────────────────────────────────────────────────────────────
-
-  function scrollToAbout() {
-    const section = aboutSectionRef.current;
-
-    if (!section) return;
-
+  function scrollToSection(ref: React.RefObject<HTMLDivElement | null>) {
+    if (!ref.current) return;
     const header = document.querySelector("header");
-
-    const headerHeight =
-      header?.getBoundingClientRect().height ?? 0;
-
-    const top =
-      section.getBoundingClientRect().top +
-      window.scrollY -
-      headerHeight -
-      16;
-
-    window.scrollTo({
-      top,
-      behavior: "smooth",
-    });
+    const headerHeight = header?.getBoundingClientRect().height ?? 0;
+    const top = ref.current.getBoundingClientRect().top + window.scrollY - headerHeight - 16;
+    window.scrollTo({ top, behavior: "smooth" });
   }
 
-  // ─────────────────────────────────────────────────────────────────────────
-  // SCROLL TO MAP / LAYOUT
-  // ─────────────────────────────────────────────────────────────────────────
-
-  function scrollToMapSection() {
-    const section = mapSectionRef.current;
-
-    if (!section) return;
-
-    const header = document.querySelector("header");
-
-    const headerHeight =
-      header?.getBoundingClientRect().height ?? 0;
-
-    const top =
-      section.getBoundingClientRect().top +
-      window.scrollY -
-      headerHeight -
-      16;
-
-    window.scrollTo({
-      top,
-      behavior: "smooth",
-    });
-  }
-
-  // ─────────────────────────────────────────────────────────────────────────
-  // LAYOUT
-  //
-  // Layout continues to use the interactive map.
-  // ─────────────────────────────────────────────────────────────────────────
-
-  function handleLayoutClick() {
-    if (mapUnlocked) {
-      scrollToMapSection();
-    } else {
-      handleOpenModal("map_unlock");
-    }
-  }
-
-  function handleFloorPlansClick() {
-    if (mapUnlocked) {
-      scrollToMapSection();
-    } else {
-      handleOpenModal("map_unlock");
-    }
-  }
-
-
-  // ─────────────────────────────────────────────────────────────────────────
-  // GENERIC FORM SUBMISSION
-  // ─────────────────────────────────────────────────────────────────────────
-
-  async function handleGenericSubmit(
-    e: React.FormEvent
-  ) {
+  async function handleGenericSubmit(e: React.FormEvent) {
     e.preventDefault();
-
     setGenericSubmitError(null);
-
-    // ─────────────────────────────────────────────────────────────
-    // BROCHURE
-    // ─────────────────────────────────────────────────────────────
 
     if (modalType === "brochure") {
       setGenericSubmitting(true);
-
       try {
         await submitForm("brochure_download", {
           name: formData.name,
@@ -278,70 +186,14 @@ export function PropertyDetailView({
 
         setStoredVisitorContact(contact);
         setKnownContact(contact);
-
         setSubmitted(true);
       } catch (err) {
-        setGenericSubmitError(
-          err instanceof Error
-            ? err.message
-            : "Could not submit — please try again."
-        );
+        setGenericSubmitError(err instanceof Error ? err.message : "Could not submit — please try again.");
       } finally {
         setGenericSubmitting(false);
       }
-
       return;
     }
-
-    // ─────────────────────────────────────────────────────────────
-    // FLOOR PLANS
-    //
-    // We collect the user's details.
-    //
-    // We deliberately DO NOT:
-    // - unlock the map
-    // - set mapUnlocked
-    // - call scrollToMapSection()
-    //
-    // After submission, the modal simply shows "Coming Soon".
-    // ─────────────────────────────────────────────────────────────
-
-    if (modalType === "availability") {
-      setGenericSubmitting(true);
-
-      try {
-        await submitForm("map_unlock", {
-          name: formData.name,
-          phone: formData.phone,
-          email: formData.email || undefined,
-        });
-
-        const contact = {
-          name: formData.name,
-          phone: formData.phone,
-          email: formData.email || undefined,
-        };
-
-        setStoredVisitorContact(contact);
-        setKnownContact(contact);
-        setMapUnlocked(true);
-        setSubmitted(true);
-      } catch (err) {
-        setGenericSubmitError(
-          err instanceof Error
-            ? err.message
-            : "Could not submit — please try again."
-        );
-      } finally {
-        setGenericSubmitting(false);
-      }
-
-      return;
-    }
-
-    // ─────────────────────────────────────────────────────────────
-    // OTHER REQUESTS
-    // ─────────────────────────────────────────────────────────────
 
     if (formData.name && formData.phone) {
       const contact = {
@@ -353,1014 +205,749 @@ export function PropertyDetailView({
       setKnownContact(contact);
       setMapUnlocked(true);
     }
-
     setSubmitted(true);
   }
 
-
-  // ─────────────────────────────────────────────────────────────────────────
-  // BROCHURE DOWNLOAD
-  // ─────────────────────────────────────────────────────────────────────────
-
   async function handleDownloadBrochure() {
-    if (!property.brochureUrl || downloadingBrochure) {
-      return;
-    }
-
+    if (!property.brochureUrl || downloadingBrochure) return;
     setDownloadingBrochure(true);
-
     try {
       const res = await fetch(property.brochureUrl);
-
-      if (!res.ok) {
-        throw new Error("Download failed");
-      }
-
+      if (!res.ok) throw new Error("Download failed");
       const blob = await res.blob();
-
       const blobUrl = URL.createObjectURL(blob);
-
       const link = document.createElement("a");
-
       link.href = blobUrl;
-
-      link.download = `${property.name.replace(
-        /\s+/g,
-        "-"
-      )}-Brochure.pdf`;
-
+      link.download = `${property.name.replace(/\s+/g, "-")}-Brochure.pdf`;
       document.body.appendChild(link);
-
       link.click();
-
       link.remove();
-
       URL.revokeObjectURL(blobUrl);
     } catch {
-      window.open(
-        property.brochureUrl,
-        "_blank",
-        "noopener,noreferrer"
-      );
+      window.open(property.brochureUrl, "_blank");
     } finally {
       setDownloadingBrochure(false);
     }
   }
 
-  // ─────────────────────────────────────────────────────────────────────────
-  // MAP UNLOCK SUBMISSION
-  //
-  // This is ONLY used by the Layout button.
-  // ─────────────────────────────────────────────────────────────────────────
-
-  async function handleMapUnlockSubmit(
-    e: React.FormEvent
-  ) {
-    e.preventDefault();
-
-    setMapSubmitError(null);
-    setMapSubmitting(true);
-
-    const contact = {
-      name: formData.name,
-      phone: formData.phone,
-      email: formData.email || undefined,
-    };
-
-    setStoredVisitorContact(contact);
-    setKnownContact(contact);
-    setMapUnlocked(true);
-
-    try {
-      await submitForm("map_unlock", contact);
-    } catch {
-      // Backend submission logged/captured; don't block user from seeing unlocked map
-    } finally {
-      setMapSubmitting(false);
-      setModalType(null);
-      setTimeout(() => {
-        scrollToMapSection();
-      }, 150);
-    }
-  }
-
+  const whatsappMessage = encodeURIComponent(
+    `Hi Truzon Homes, I would like to schedule a site visit / get more details for ${property.name} (${property.location}).`
+  );
+  const whatsappUrl = `https://wa.me/${(property.phone || "").replace(/[^0-9]/g, "") || "919000012345"}?text=${whatsappMessage}`;
 
   return (
-    <div className="bg-white">
+    <div className="min-h-screen bg-surface-subtle/30 text-text-strong">
       {/* ─────────────────────────────────────────────────────────────────────
-          TOP SECTION
-      ───────────────────────────────────────────────────────────────────── */}
-
-      <section className="border-b border-divider bg-white pb-8 pt-6 text-navy-900 sm:pb-10">
-        <Container size="wide">
-
-          {/* Breadcrumb */}
-
-          <nav
-            aria-label="Breadcrumb"
-            className="mb-6 flex flex-wrap items-center gap-1.5 text-xs text-text-muted"
+          SECTION 1 — FULL-SCREEN CINEMATIC HERO (90-100vh)
+          ───────────────────────────────────────────────────────────────────── */}
+      <section className="relative h-[85vh] min-h-[580px] md:h-[92vh] w-full overflow-hidden bg-navy-950">
+        {property.heroMediaType === "video" && (property.desktopHeroVideoUrl || property.mobileHeroVideoUrl) ? (
+          <video
+            autoPlay
+            muted
+            loop
+            playsInline
+            poster={property.posterImageUrl || undefined}
+            className="absolute inset-0 h-full w-full object-cover"
           >
-            <Link
-              href="/"
-              className="transition-colors hover:text-navy-900"
-            >
-              Home
-            </Link>
+            {property.desktopHeroVideoUrl && <source src={property.desktopHeroVideoUrl} type="video/mp4" />}
+            {property.mobileHeroVideoUrl && <source src={property.mobileHeroVideoUrl} type="video/mp4" />}
+          </video>
+        ) : (
+          <Image
+            src={property.desktopHeroImageUrl || property.image}
+            alt={property.name}
+            fill
+            priority
+            sizes="100vw"
+            className="object-cover"
+          />
+        )}
 
-            <ChevronRight size={12} />
+        {/* Dynamic Dark Gradient Overlay */}
+        <div
+          className="absolute inset-0 bg-gradient-to-t from-navy-950 via-navy-950/50 to-black/30"
+          style={{ opacity: (property.heroOverlayStrength ?? 40) / 100 + 0.3 }}
+        />
 
-            <Link
-              href="/projects"
-              className="transition-colors hover:text-navy-900"
-            >
-              Projects
-            </Link>
-
-            <ChevronRight size={12} />
-
-            <span className="font-semibold text-gold-600">
-              {property.name}
-            </span>
-          </nav>
-
-          {/* Hero Grid */}
-
-          <div className="grid grid-cols-1 gap-8 lg:grid-cols-12 lg:items-start">
-
-            {/* ───────────────────────────────────────────────────────────────
-                LEFT: GALLERY
-            ─────────────────────────────────────────────────────────────── */}
-
-            <div className="lg:col-span-7 xl:col-span-8">
-
-              {/* Main Image */}
-
-              <div className="group relative h-[320px] w-full overflow-hidden rounded-2xl border border-gray-200 bg-surface-subtle shadow-md sm:h-[440px]">
-                {activeImage ? (
-                  <Image
-                    src={activeImage}
-                    alt={`${property.name} photo ${
-                      activeImageIndex + 1
-                    }`}
-                    fill
-                    priority
-                    sizes="(min-width: 1024px) 60vw, 100vw"
-                    className="object-cover transition-transform duration-500 group-hover:scale-105"
-                  />
-                ) : (
-                  <div className="flex h-full w-full flex-col items-center justify-center bg-surface-subtle p-6 text-center">
-                    <p className="text-sm font-medium text-text-muted">
-                      Drop the main photo of {property.name}
-                    </p>
-                  </div>
-                )}
-
-                <div className="absolute bottom-4 right-4 rounded-full border border-navy-800 bg-navy-900/85 px-3 py-1 text-xs font-semibold text-white shadow-sm backdrop-blur-md">
-                  {activeImageIndex + 1} /{" "}
-                  {property.gallery.length}
-                </div>
+        {/* Top Breadcrumb & Share */}
+        <div className="absolute top-6 left-0 right-0 z-20">
+          <Container>
+            <div className="flex items-center justify-between text-xs text-white/80 font-medium">
+              <div className="flex items-center gap-2 backdrop-blur-md bg-black/30 px-4 py-2 rounded-full border border-white/10">
+                <Link href="/" className="hover:text-amber-400 transition-colors">Home</Link>
+                <span>/</span>
+                <Link href="/projects" className="hover:text-amber-400 transition-colors">Projects</Link>
+                <span>/</span>
+                <span className="text-white font-semibold">{property.name}</span>
               </div>
 
-              {/* Thumbnails */}
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={handleShare}
+                  className="flex items-center gap-1.5 backdrop-blur-md bg-black/40 hover:bg-black/60 text-white px-3.5 py-2 rounded-full border border-white/15 transition-all cursor-pointer"
+                >
+                  <Share2 size={14} />
+                  <span>Share</span>
+                  {copied && <span className="text-[11px] text-emerald-400 font-bold ml-1">Copied!</span>}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => toggleFavorite(property.id)}
+                  className="flex items-center gap-1.5 backdrop-blur-md bg-black/40 hover:bg-black/60 text-white px-3.5 py-2 rounded-full border border-white/15 transition-all cursor-pointer"
+                >
+                  <Heart size={14} className={saved ? "fill-red-500 text-red-500" : ""} />
+                  <span>{saved ? "Saved" : "Save"}</span>
+                </button>
+              </div>
+            </div>
+          </Container>
+        </div>
 
-              <div className="mt-4 grid grid-cols-4 gap-3">
-                {property.gallery.slice(0, 4).map((img, idx) => (
-                  <button
-                    key={idx}
-                    type="button"
-                    onClick={() => setActiveImageIndex(idx)}
-                    className={cn(
-                      "group relative flex cursor-pointer flex-col items-center overflow-hidden rounded-xl border bg-surface-subtle p-1 transition-all",
-                      activeImageIndex === idx
-                        ? "border-gold-500 shadow-sm ring-2 ring-gold-500"
-                        : "border-gray-200 opacity-90 hover:border-gray-400 hover:opacity-100"
-                    )}
-                  >
-                    <div className="relative h-16 w-full overflow-hidden rounded-lg sm:h-20">
-                      <Image
-                        src={img}
-                        alt={`Photo ${idx + 1}`}
-                        fill
-                        sizes="20vw"
-                        className="object-cover"
-                      />
-                    </div>
-
-                    <span className="mt-1 text-[11px] font-semibold text-navy-900">
-                      Photo {idx + 1}
-                    </span>
-                  </button>
-                ))}
+        {/* Hero Content */}
+        <div className="absolute inset-0 z-10 flex items-end pb-16 md:pb-24">
+          <Container>
+            <div className="max-w-3xl text-white">
+              <div className="mb-3 flex flex-wrap items-center gap-2">
+                <span className="rounded-full bg-amber-500/90 text-navy-950 px-3.5 py-1 text-xs font-bold uppercase tracking-wider backdrop-blur-sm">
+                  {property.tagText || "LUXURY SHOWROOM"}
+                </span>
+                <span className="rounded-full bg-white/20 text-white px-3.5 py-1 text-xs font-semibold backdrop-blur-sm">
+                  {property.statusText || property.approvalInfo}
+                </span>
               </div>
 
-              {/* ─────────────────────────────────────────────────────────────
-                  ACTION BUTTONS
-              ───────────────────────────────────────────────────────────── */}
+              <h1 className="font-heading text-4xl sm:text-5xl md:text-6xl font-extrabold tracking-tight mb-4 text-white leading-tight">
+                {property.heroHeading || property.name}
+              </h1>
 
-              <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
+              <p className="text-base sm:text-lg text-white/90 font-normal mb-6 max-w-2xl flex items-center gap-2">
+                <MapPin size={18} className="text-amber-400 shrink-0" />
+                {property.heroSubheading || property.location}
+              </p>
 
-                {/* ABOUT */}
-
-                <button
-                  type="button"
-                  onClick={scrollToAbout}
-                  className="flex cursor-pointer items-center justify-center gap-2 rounded-xl border border-gray-200 bg-white px-3 py-3 text-xs font-bold text-navy-900 shadow-sm transition-all hover:border-gold-500 hover:bg-gold-50"
-                >
-                  <Compass
-                    size={15}
-                    className="text-gold-500"
-                  />
-
-                  <span>About</span>
-                </button>
-
-                {/* LAYOUT */}
-
-                <button
-                  type="button"
-                  onClick={handleLayoutClick}
-                  className={cn(
-                    "flex cursor-pointer items-center justify-center gap-2 rounded-xl border px-3 py-3 text-xs font-bold shadow-sm transition-all",
-                    property.mapProjectId
-                      ? "border-emerald-300 bg-emerald-50 text-emerald-800 hover:border-emerald-400 hover:bg-emerald-100"
-                      : "border-gray-200 bg-white text-navy-900 hover:border-gold-500 hover:bg-gold-50"
-                  )}
-                >
-                  <Compass
-                    size={15}
-                    className={
-                      property.mapProjectId
-                        ? "text-emerald-600"
-                        : "text-gold-500"
-                    }
-                  />
-
-                  <span>Layout</span>
-                </button>
-
-                {/* VIRTUAL TOUR */}
-
+              <div className="flex flex-wrap items-center gap-4 pt-2">
                 <button
                   type="button"
                   onClick={() => handleOpenModal("tour")}
-                  className="flex cursor-pointer items-center justify-center gap-2 rounded-xl border border-gray-200 bg-white px-3 py-3 text-xs font-bold text-navy-900 shadow-sm transition-all hover:border-gold-500 hover:bg-gold-50"
+                  className="rounded-xl bg-amber-500 hover:bg-amber-400 text-navy-950 px-7 py-3.5 text-sm font-bold shadow-lg transition-all transform hover:-translate-y-0.5 cursor-pointer"
                 >
-                  <Eye
-                    size={15}
-                    className="text-gold-500"
-                  />
-
-                  <span>Virtual Tour</span>
+                  SCHEDULE A SITE VISIT
                 </button>
 
-                {/* FLOOR PLANS */}
+                {property.brochureUrl && (
+                  <button
+                    type="button"
+                    onClick={() => handleOpenModal("brochure")}
+                    className="flex items-center gap-2 rounded-xl backdrop-blur-md bg-white/15 hover:bg-white/25 text-white border border-white/30 px-6 py-3.5 text-sm font-semibold transition-all cursor-pointer"
+                  >
+                    <Download size={16} />
+                    <span>DOWNLOAD BROCHURE</span>
+                  </button>
+                )}
 
-                <button
-                  type="button"
-                  onClick={handleFloorPlansClick}
-                  className="flex cursor-pointer items-center justify-center gap-2 rounded-xl border border-gray-200 bg-white px-3 py-3 text-xs font-bold text-navy-900 shadow-sm transition-all hover:border-gold-500 hover:bg-gold-50"
+                <a
+                  href={whatsappUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-2 rounded-xl backdrop-blur-md bg-emerald-600/90 hover:bg-emerald-500 text-white px-6 py-3.5 text-sm font-semibold transition-all cursor-pointer"
                 >
-                  <CalendarClock
-                    size={15}
-                    className="text-gold-500"
-                  />
-
-                  <span>Floor Plans</span>
-                </button>
+                  <MessageSquare size={16} />
+                  <span>WHATSAPP US</span>
+                </a>
               </div>
+            </div>
+          </Container>
+        </div>
+      </section>
 
-              {property.mapProjectId && (
-                <p className="mt-3 flex items-center gap-1.5 text-[11px] text-emerald-700">
-                  <CheckCircle2 size={11} />
+      {/* ─────────────────────────────────────────────────────────────────────
+          FLOATING CONVERSION BAR (Mobile Fixed Bottom / Desktop Sticky Header)
+          ───────────────────────────────────────────────────────────────────── */}
+      <div className="fixed bottom-0 left-0 right-0 z-40 bg-navy-950/95 backdrop-blur-md border-t border-white/10 p-3 md:py-4 md:px-6 text-white shadow-2xl">
+        <Container>
+          <div className="flex items-center justify-between gap-4">
+            <div className="hidden lg:flex items-center gap-6">
+              <div>
+                <span className="block text-[10px] uppercase font-bold text-amber-400 tracking-wider">Project Price</span>
+                <span className="font-heading text-lg font-bold">{property.price || "On Request"}</span>
+              </div>
+              <div className="h-8 w-px bg-white/15" />
+              <div>
+                <span className="block text-[10px] uppercase font-bold text-white/60 tracking-wider">Location</span>
+                <span className="text-xs font-semibold text-white/90">{property.location}</span>
+              </div>
+            </div>
 
-                  Interactive floor plans available — click
-                  Layout to explore.
-                </p>
+            <div className="flex items-center justify-between w-full lg:w-auto gap-2.5">
+              <a
+                href={whatsappUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex-1 lg:flex-none flex items-center justify-center gap-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-2.5 text-xs font-bold transition-all cursor-pointer"
+              >
+                <MessageSquare size={15} />
+                <span>WhatsApp</span>
+              </a>
+
+              <a
+                href={`tel:${property.phone}`}
+                className="flex-1 lg:flex-none flex items-center justify-center gap-2 rounded-xl bg-white/15 hover:bg-white/25 text-white border border-white/20 px-4 py-2.5 text-xs font-bold transition-all cursor-pointer"
+              >
+                <PhoneCall size={15} />
+                <span>Call Now</span>
+              </a>
+
+              <button
+                type="button"
+                onClick={() => handleOpenModal("tour")}
+                className="flex-1 lg:flex-none flex items-center justify-center gap-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-navy-950 px-5 py-2.5 text-xs font-bold transition-all cursor-pointer"
+              >
+                <CalendarClock size={15} />
+                <span>Book Site Visit</span>
+              </button>
+            </div>
+          </div>
+        </Container>
+      </div>
+
+      {/* ─────────────────────────────────────────────────────────────────────
+          SECTION 2 — PROJECT INTRODUCTION & HIGH-IMPACT STATS
+          ───────────────────────────────────────────────────────────────────── */}
+      <section ref={aboutSectionRef} className="py-16 md:py-24 bg-white">
+        <Container>
+          <div className="max-w-4xl mx-auto text-center mb-16">
+            <span className="inline-block text-xs font-extrabold uppercase tracking-widest text-amber-600 mb-2">
+              WELCOME TO {property.name}
+            </span>
+            <h2 className="font-heading text-3xl sm:text-4xl md:text-5xl font-bold text-navy-950 mb-6 leading-tight">
+              {property.heroHeading || property.name}
+            </h2>
+            <p className="text-base sm:text-lg text-text-body leading-relaxed font-normal">
+              {property.description}
+            </p>
+          </div>
+
+          {/* High Impact Numbers Grid */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
+            <div className="rounded-2xl bg-surface-subtle p-6 text-center border border-divider/60">
+              <span className="block text-2xl sm:text-3xl md:text-4xl font-extrabold text-navy-950 mb-1">
+                {property.specA || "4 BHK"}
+              </span>
+              <span className="text-xs font-bold text-text-muted uppercase tracking-wider">Configuration</span>
+            </div>
+
+            <div className="rounded-2xl bg-surface-subtle p-6 text-center border border-divider/60">
+              <span className="block text-2xl sm:text-3xl md:text-4xl font-extrabold text-navy-950 mb-1">
+                {property.specB || "3,500 Sq.Ft"}
+              </span>
+              <span className="text-xs font-bold text-text-muted uppercase tracking-wider">Area / Plot Size</span>
+            </div>
+
+            <div className="rounded-2xl bg-surface-subtle p-6 text-center border border-divider/60">
+              <span className="block text-2xl sm:text-3xl md:text-4xl font-extrabold text-amber-600 mb-1">
+                {property.price || "On Request"}
+              </span>
+              <span className="text-xs font-bold text-text-muted uppercase tracking-wider">Starting Price</span>
+            </div>
+
+            <div className="rounded-2xl bg-surface-subtle p-6 text-center border border-divider/60">
+              <span className="block text-2xl sm:text-3xl md:text-4xl font-extrabold text-navy-950 mb-1">
+                {property.possessionDate || "Ready"}
+              </span>
+              <span className="text-xs font-bold text-text-muted uppercase tracking-wider">Possession</span>
+            </div>
+          </div>
+        </Container>
+      </section>
+
+      {/* ─────────────────────────────────────────────────────────────────────
+          SECTION 3 — HIGHLIGHT BADGES
+          ───────────────────────────────────────────────────────────────────── */}
+      {property.highlights && property.highlights.length > 0 && (
+        <section className="py-12 bg-navy-950 text-white">
+          <Container>
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4 text-center">
+              {property.highlights.map((h, idx) => (
+                <div key={idx} className="p-4 rounded-xl bg-white/5 border border-white/10">
+                  <span className="block text-2xl font-extrabold text-amber-400 mb-1">{h.value}</span>
+                  <span className="text-xs font-semibold text-white/80">{h.label}</span>
+                </div>
+              ))}
+            </div>
+          </Container>
+        </section>
+      )}
+
+      {/* ─────────────────────────────────────────────────────────────────────
+          SECTION 4 — CATEGORIZED VIDEO EXPERIENCE
+          ───────────────────────────────────────────────────────────────────── */}
+      {property.videoExperience && property.videoExperience.length > 0 && (
+        <section className="py-16 md:py-24 bg-surface-subtle/50">
+          <Container>
+            <div className="mb-12 text-center">
+              <span className="text-xs font-extrabold uppercase tracking-widest text-amber-600 mb-2 block">
+                CINEMATIC TOUR
+              </span>
+              <h2 className="font-heading text-3xl md:text-4xl font-bold text-navy-950">
+                Experience {property.name} in Motion
+              </h2>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {property.videoExperience.map((vid, idx) => (
+                <div
+                  key={idx}
+                  className="group relative overflow-hidden rounded-2xl bg-navy-950 shadow-lg cursor-pointer"
+                  onClick={() => {
+                    setActiveVideoUrl(vid.videoUrl);
+                    handleOpenModal("video_lightbox");
+                  }}
+                >
+                  <div className="relative h-60 w-full">
+                    {vid.posterImageUrl ? (
+                      <Image src={vid.posterImageUrl} alt={vid.title} fill className="object-cover opacity-80 group-hover:scale-105 transition-transform duration-500" />
+                    ) : (
+                      <div className="h-full w-full bg-navy-900 flex items-center justify-center">
+                        <Play size={40} className="text-amber-400" />
+                      </div>
+                    )}
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
+
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <div className="flex h-14 w-14 items-center justify-center rounded-full bg-amber-500 text-navy-950 shadow-xl group-hover:scale-110 transition-transform">
+                        <Play size={24} className="fill-navy-950 ml-1" />
+                      </div>
+                    </div>
+
+                    <div className="absolute top-3 left-3 rounded-md bg-black/60 px-3 py-1 text-[11px] font-bold text-white uppercase tracking-wider backdrop-blur-sm">
+                      {vid.category}
+                    </div>
+
+                    <div className="absolute bottom-4 left-4 right-4">
+                      <h3 className="font-heading text-lg font-bold text-white leading-snug">{vid.title}</h3>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </Container>
+        </section>
+      )}
+
+      {/* ─────────────────────────────────────────────────────────────────────
+          SECTION 5 — MASTER PLAN
+          ───────────────────────────────────────────────────────────────────── */}
+      {property.masterPlan && (
+        <section className="py-16 md:py-24 bg-white border-t border-divider">
+          <Container>
+            <div className="max-w-3xl mx-auto text-center mb-12">
+              <span className="text-xs font-extrabold uppercase tracking-widest text-amber-600 mb-2 block">
+                COMMUNITY LAYOUT
+              </span>
+              <h2 className="font-heading text-3xl md:text-4xl font-bold text-navy-950 mb-3">
+                {property.masterPlan.title}
+              </h2>
+              {property.masterPlan.description && (
+                <p className="text-sm text-text-muted">{property.masterPlan.description}</p>
               )}
             </div>
 
-            {/* ───────────────────────────────────────────────────────────────
-                RIGHT: PROPERTY INFO CARD
-            ─────────────────────────────────────────────────────────────── */}
-
-            <div className="lg:col-span-5 xl:col-span-4">
-              <div className="sticky top-24 rounded-2xl border border-gray-200 bg-white p-6 text-navy-900 shadow-xl sm:p-8">
-
-                {/* Badges & Save */}
-
-                <div className="flex items-center justify-between gap-2">
-                  <div className="flex flex-wrap items-center gap-2">
-
-                    <span
-                      className="rounded px-3 py-1 text-xs font-bold uppercase tracking-wider text-white"
-                      style={{
-                        backgroundColor:
-                          property.tagBg || "#5f9c3a",
-                        color:
-                          property.tagColor || "#ffffff",
-                      }}
-                    >
-                      {property.tagText || "EXCLUSIVE"}
-                    </span>
-
-                    <span className="rounded bg-surface-muted px-3 py-1 text-xs font-semibold text-navy-900">
-                      {property.statusText ||
-                        "Ready to Move"}
-                    </span>
-                  </div>
-
-                  <div className="flex items-center gap-2">
-                    <button
-                      type="button"
-                      onClick={() =>
-                        toggleFavorite(property.id)
-                      }
-                      aria-label={
-                        saved
-                          ? "Saved"
-                          : "Save property"
-                      }
-                      className={cn(
-                        "flex cursor-pointer items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-semibold transition-all",
-                        saved
-                          ? "border-red-200 bg-red-50 text-red-600"
-                          : "border-gray-300 text-gray-700 hover:border-gray-400"
-                      )}
-                    >
-                      <Heart
-                        size={14}
-                        className={cn(
-                          saved
-                            ? "fill-red-600 text-red-600"
-                            : "text-gray-500"
-                        )}
-                      />
-
-                      <span>
-                        {saved ? "Saved" : "Save"}
-                      </span>
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={handleShare}
-                      aria-label="Share property"
-                      className={cn(
-                        "flex cursor-pointer items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-semibold transition-all",
-                        copied
-                          ? "border-emerald-200 bg-emerald-50 text-emerald-700 font-bold"
-                          : "border-gray-300 text-gray-700 hover:border-gray-400 hover:bg-gray-50"
-                      )}
-                    >
-                      <Share2
-                        size={14}
-                        className={copied ? "text-emerald-600" : "text-gray-500"}
-                      />
-
-                      <span>
-                        {copied ? "Copied!" : "Share"}
-                      </span>
-                    </button>
-                  </div>
-                </div>
-
-                {/* Title */}
-
-                <h1 className="mt-5 font-heading text-2xl font-bold text-navy-900 sm:text-3xl">
-                  {property.name}
-                </h1>
-
-                {/* Location */}
-
-                <div className="mt-1.5 flex items-center gap-1.5 text-xs text-text-muted">
-                  <MapPin
-                    size={14}
-                    className="shrink-0 text-gold-500"
-                  />
-
-                  <span>{property.location}</span>
-                </div>
-
-                {/* Price */}
-
-                <div className="my-5">
-                  <span className="font-heading text-3xl font-bold text-navy-900">
-                    {property.price}
-                  </span>
-                </div>
-
-                <hr className="my-4 border-divider" />
-
-                {/* Specs */}
-
-                <div className="grid grid-cols-2 gap-4 py-2">
-                  <div>
-                    <span className="block text-[11px] font-bold uppercase tracking-wider text-text-muted">
-                      TYPE
-                    </span>
-
-                    <span className="mt-0.5 block text-sm font-bold text-navy-900">
-                      {property.specA ||
-                        property.type}
-                    </span>
-                  </div>
-
-                  <div>
-                    <span className="block text-[11px] font-bold uppercase tracking-wider text-text-muted">
-                      AREA
-                    </span>
-
-                    <span className="mt-0.5 block text-sm font-bold text-navy-900">
-                      {property.specB ||
-                        `${property.areaSqft} Sq.Ft`}
-                    </span>
-                  </div>
-                </div>
-
-                {/* CTA BUTTONS */}
-
-                <div className="mt-6 flex flex-col gap-3">
-
-                  {/* CALLBACK */}
-
+            {property.masterPlan.imageUrl && (
+              <div className="relative overflow-hidden rounded-2xl border border-divider shadow-xl bg-surface-subtle group">
+                <Image
+                  src={property.masterPlan.imageUrl}
+                  alt={property.masterPlan.title}
+                  width={1400}
+                  height={900}
+                  className="w-full h-auto object-contain max-h-[75vh]"
+                />
+                <div className="absolute bottom-4 right-4 flex items-center gap-2">
                   <button
                     type="button"
-                    onClick={() =>
-                      handleOpenModal("callback")
-                    }
-                    className="w-full cursor-pointer rounded-lg bg-gold-500 px-4 py-3.5 text-center text-xs font-bold uppercase tracking-wider text-navy-950 shadow-md transition-all hover:bg-gold-400 active:scale-[0.99]"
+                    onClick={() => {
+                      setZoomedPlanImageUrl(property.masterPlan?.imageUrl || null);
+                      handleOpenModal("master_plan_zoom");
+                    }}
+                    className="flex items-center gap-2 rounded-xl bg-navy-900/90 hover:bg-navy-900 text-white px-4 py-2.5 text-xs font-bold backdrop-blur-sm transition-all cursor-pointer"
                   >
-                    REQUEST A CALLBACK
-                  </button>
-
-                  {/* DOWNLOAD BROCHURE */}
-
-                  <button
-                    type="button"
-                    onClick={() =>
-                      handleOpenModal("brochure")
-                    }
-                    className="flex w-full cursor-pointer items-center justify-center gap-2 rounded-lg border-2 border-navy-900 px-4 py-3 text-center text-xs font-bold uppercase tracking-wider text-navy-900 transition-all hover:bg-navy-900 hover:text-white"
-                  >
-                    <Download size={15} />
-
-                    <span>
-                      Download Brochure
-                    </span>
+                    <ZoomIn size={16} />
+                    <span>View High-Res Master Plan</span>
                   </button>
                 </div>
-              </div>
-            </div>
-          </div>
-        </Container>
-      </section>
-
-      {/* ─────────────────────────────────────────────────────────────────────
-          ABOUT + AMENITIES
-      ───────────────────────────────────────────────────────────────────── */}
-
-      <section
-        ref={aboutSectionRef}
-        id="about"
-        className="scroll-mt-24 bg-white py-12 sm:py-14"
-      >
-        <Container size="wide">
-          <div className="space-y-12 sm:space-y-14">
-
-            {/* ABOUT */}
-
-            <div>
-              <h2 className="font-heading text-2xl font-bold text-navy-900 sm:text-3xl">
-                About this property
-              </h2>
-
-              <p className="mt-4 text-[15px] leading-relaxed text-text-body sm:text-base">
-                {property.description}
-              </p>
-            </div>
-
-            {/* AMENITIES */}
-
-            {property.amenities.length > 0 && (
-              <div>
-                <h2 className="font-heading text-2xl font-bold text-navy-900 sm:text-3xl">
-                  Amenities
-                </h2>
-
-                <ul className="mt-6 grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
-                  {property.amenities.map(
-                    (item, i) => (
-                      <li
-                        key={i}
-                        className="flex items-center gap-2.5 rounded-lg border border-gray-100 bg-surface-subtle p-3"
-                      >
-                        <CheckCircle2
-                          size={18}
-                          className="shrink-0 text-success"
-                        />
-
-                        <span className="text-sm font-medium text-navy-900">
-                          {item.name}
-                        </span>
-                      </li>
-                    )
-                  )}
-                </ul>
               </div>
             )}
-          </div>
-        </Container>
-      </section>
+          </Container>
+        </section>
+      )}
 
       {/* ─────────────────────────────────────────────────────────────────────
-          AMENITIES GRID
-      ───────────────────────────────────────────────────────────────────── */}
+          SECTION 6 — INTERACTIVE FLOOR PLANS / PLOT PLANS
+          ───────────────────────────────────────────────────────────────────── */}
+      {property.floorPlans && property.floorPlans.length > 0 && (
+        <section className="py-16 md:py-24 bg-surface-subtle/50 border-t border-divider">
+          <Container>
+            <div className="mb-12 text-center">
+              <span className="text-xs font-extrabold uppercase tracking-widest text-amber-600 mb-2 block">
+                ARCHITECTURAL PLANS
+              </span>
+              <h2 className="font-heading text-3xl md:text-4xl font-bold text-navy-950">
+                Floor Plans & Layout Configurations
+              </h2>
+            </div>
 
-      <section className="border-t border-divider bg-surface-subtle py-12 sm:py-14">
-        <Container size="wide">
-          <h2 className="font-heading text-2xl font-bold text-navy-900 sm:text-3xl">
-            Amenities at {property.name}
-          </h2>
-
-          <div className="mt-8 grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
-            {property.amenities.map(
-              (item, idx) => (
-                <div
+            {/* Plan Selector Tabs */}
+            <div className="mb-8 flex flex-wrap justify-center gap-2">
+              {property.floorPlans.map((plan, idx) => (
+                <button
                   key={idx}
-                  className="group overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm transition-all hover:shadow-md"
+                  type="button"
+                  onClick={() => setActiveFloorPlanIndex(idx)}
+                  className={cn(
+                    "px-5 py-2.5 rounded-full text-xs font-bold transition-all cursor-pointer",
+                    activeFloorPlanIndex === idx
+                      ? "bg-navy-900 text-white shadow-md"
+                      : "bg-white text-text-strong hover:bg-neutral-100 border border-divider"
+                  )}
                 >
-                  <div className="relative h-[180px] w-full overflow-hidden bg-surface-subtle">
-                    {item.image ? (
-                      <Image
-                        src={item.image}
-                        alt={item.name}
-                        fill
-                        unoptimized
-                        sizes="(min-width: 1024px) 33vw, (min-width: 768px) 50vw, 100vw"
-                        className="object-cover transition-transform duration-500 group-hover:scale-105"
-                      />
-                    ) : (
-                      <div className="flex h-full w-full flex-col items-center justify-center bg-navy-900 p-4 text-center">
-                        <CheckCircle2 size={36} className="text-gold-400 opacity-80" />
-                        <span className="mt-2 text-xs font-semibold text-gold-200">{item.name}</span>
+                  {plan.name}
+                </button>
+              ))}
+            </div>
+
+            {/* Active Plan Detail View */}
+            {property.floorPlans[activeFloorPlanIndex] && (
+              <div className="rounded-2xl border border-divider bg-white p-6 md:p-8 shadow-sm grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
+                <div className="flex flex-col gap-4">
+                  <h3 className="font-heading text-2xl font-bold text-navy-950">
+                    {property.floorPlans[activeFloorPlanIndex].name}
+                  </h3>
+
+                  <div className="grid grid-cols-2 gap-4 text-xs font-medium py-4 border-y border-divider">
+                    {property.floorPlans[activeFloorPlanIndex].config && (
+                      <div>
+                        <span className="block font-bold text-text-muted uppercase tracking-wider">Configuration</span>
+                        <span className="text-sm font-bold text-navy-900">{property.floorPlans[activeFloorPlanIndex].config}</span>
+                      </div>
+                    )}
+                    {property.floorPlans[activeFloorPlanIndex].area && (
+                      <div>
+                        <span className="block font-bold text-text-muted uppercase tracking-wider">Area / Plot Size</span>
+                        <span className="text-sm font-bold text-navy-900">{property.floorPlans[activeFloorPlanIndex].area}</span>
+                      </div>
+                    )}
+                    {property.floorPlans[activeFloorPlanIndex].price && (
+                      <div>
+                        <span className="block font-bold text-text-muted uppercase tracking-wider">Starting Price</span>
+                        <span className="text-sm font-bold text-amber-600">{property.floorPlans[activeFloorPlanIndex].price}</span>
                       </div>
                     )}
                   </div>
 
-                  <div className="flex items-center gap-2.5 border-t border-gray-100 bg-white p-4">
-                    <CheckCircle2
-                      size={18}
-                      className="shrink-0 text-success"
-                    />
-
-                    <span className="text-sm font-bold text-navy-900">
-                      {item.name}
-                    </span>
+                  <div className="flex flex-wrap items-center gap-3 pt-2">
+                    <button
+                      type="button"
+                      onClick={() => handleOpenModal("tour")}
+                      className="rounded-xl bg-navy-900 hover:bg-amber-600 text-white px-6 py-3 text-xs font-bold transition-colors cursor-pointer"
+                    >
+                      Enquire For This Plan
+                    </button>
                   </div>
                 </div>
-              )
+
+                {property.floorPlans[activeFloorPlanIndex].imageUrl && (
+                  <div
+                    className="relative overflow-hidden rounded-xl border border-divider bg-surface-subtle p-2 group cursor-pointer"
+                    onClick={() => {
+                      setZoomedPlanImageUrl(property.floorPlans[activeFloorPlanIndex].imageUrl);
+                      handleOpenModal("floor_plan_zoom");
+                    }}
+                  >
+                    <Image
+                      src={property.floorPlans[activeFloorPlanIndex].imageUrl}
+                      alt={property.floorPlans[activeFloorPlanIndex].name}
+                      width={800}
+                      height={600}
+                      className="w-full h-auto object-contain rounded-lg"
+                    />
+                    <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                      <span className="rounded-lg bg-navy-950/90 text-white px-4 py-2 text-xs font-bold flex items-center gap-2 shadow-lg">
+                        <ZoomIn size={16} /> Click to Expand
+                      </span>
+                    </div>
+                  </div>
+                )}
+              </div>
             )}
+          </Container>
+        </section>
+      )}
+
+      {/* ─────────────────────────────────────────────────────────────────────
+          SECTION 7 — PROJECT GALLERY
+          ───────────────────────────────────────────────────────────────────── */}
+      {property.gallery && property.gallery.length > 0 && (
+        <section className="py-16 md:py-24 bg-white border-t border-divider">
+          <Container>
+            <div className="mb-12 text-center">
+              <span className="text-xs font-extrabold uppercase tracking-widest text-amber-600 mb-2 block">
+                PHOTOGRAPHY & ELEVATIONS
+              </span>
+              <h2 className="font-heading text-3xl md:text-4xl font-bold text-navy-950">
+                Project Gallery
+              </h2>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+              {property.gallery.map((img, idx) => (
+                <div
+                  key={idx}
+                  className="relative h-64 overflow-hidden rounded-2xl bg-surface-subtle group cursor-pointer shadow-sm hover:shadow-md transition-shadow"
+                  onClick={() => setActiveImageIndex(idx)}
+                >
+                  <Image src={img} alt={`${property.name} ${idx + 1}`} fill sizes="33vw" className="object-cover group-hover:scale-105 transition-transform duration-500" />
+                </div>
+              ))}
+            </div>
+          </Container>
+        </section>
+      )}
+
+      {/* ─────────────────────────────────────────────────────────────────────
+          SECTION 8 — AMENITIES
+          ───────────────────────────────────────────────────────────────────── */}
+      {property.amenities && property.amenities.length > 0 && (
+        <section className="py-16 md:py-24 bg-surface-subtle/50 border-t border-divider">
+          <Container>
+            <div className="mb-12 text-center">
+              <span className="text-xs font-extrabold uppercase tracking-widest text-amber-600 mb-2 block">
+                WORLD-CLASS AMENITIES
+              </span>
+              <h2 className="font-heading text-3xl md:text-4xl font-bold text-navy-950">
+                Designed for Elevated Living
+              </h2>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+              {property.amenities.map((amenity, idx) => (
+                <div key={idx} className="flex items-center gap-4 rounded-2xl border border-divider bg-white p-4 shadow-sm">
+                  {amenity.image ? (
+                    <div className="relative h-16 w-16 overflow-hidden rounded-xl shrink-0">
+                      <Image src={amenity.image} alt={amenity.name} fill className="object-cover" />
+                    </div>
+                  ) : (
+                    <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-amber-500/10 text-amber-600 shrink-0">
+                      <Sparkles size={20} />
+                    </div>
+                  )}
+                  <span className="font-semibold text-navy-900 text-sm">{amenity.name}</span>
+                </div>
+              ))}
+            </div>
+          </Container>
+        </section>
+      )}
+
+      {/* ─────────────────────────────────────────────────────────────────────
+          SECTION 9 — LOCATION & CONNECTIVITY
+          ───────────────────────────────────────────────────────────────────── */}
+      {property.locationLandmarks && property.locationLandmarks.length > 0 && (
+        <section className="py-16 md:py-24 bg-white border-t border-divider">
+          <Container>
+            <div className="mb-12 text-center">
+              <span className="text-xs font-extrabold uppercase tracking-widest text-amber-600 mb-2 block">
+                STRATEGIC LOCATION
+              </span>
+              <h2 className="font-heading text-3xl md:text-4xl font-bold text-navy-950">
+                Nearby Landmarks & Connectivity
+              </h2>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+              {property.locationLandmarks.map((lm, idx) => (
+                <div key={idx} className="flex items-center justify-between rounded-2xl border border-divider bg-surface-subtle p-5">
+                  <div>
+                    <span className="block text-[10px] font-bold uppercase tracking-wider text-amber-600">{lm.category}</span>
+                    <span className="font-bold text-navy-950 text-sm">{lm.name}</span>
+                  </div>
+                  <span className="rounded-full bg-navy-900 text-white px-3 py-1 text-xs font-bold shrink-0 ml-2">
+                    {lm.distance}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </Container>
+        </section>
+      )}
+
+      {/* ─────────────────────────────────────────────────────────────────────
+          SECTION 10 — ACTIVE OFFERS & CAMPAIGNS
+          ───────────────────────────────────────────────────────────────────── */}
+      {property.offers && property.offers.length > 0 && (
+        <section className="py-16 bg-amber-500 text-navy-950">
+          <Container>
+            <div className="max-w-4xl mx-auto text-center">
+              {property.offers.map((offer, idx) => (
+                <div key={idx} className="flex flex-col items-center gap-4">
+                  <span className="rounded-full bg-navy-950 text-amber-400 px-4 py-1 text-xs font-bold uppercase tracking-wider">
+                    SPECIAL LIMITED TIME OFFER
+                  </span>
+                  <h2 className="font-heading text-3xl sm:text-4xl font-extrabold">{offer.title}</h2>
+                  {offer.description && <p className="text-base font-semibold max-w-2xl">{offer.description}</p>}
+                  {offer.validUntil && <p className="text-xs font-bold uppercase">Valid Until: {offer.validUntil}</p>}
+                  <button
+                    type="button"
+                    onClick={() => handleOpenModal("tour")}
+                    className="mt-2 rounded-xl bg-navy-950 hover:bg-navy-900 text-white px-8 py-3.5 text-sm font-bold shadow-xl transition-all cursor-pointer"
+                  >
+                    CLAIM OFFER & BOOK VISIT
+                  </button>
+                </div>
+              ))}
+            </div>
+          </Container>
+        </section>
+      )}
+
+      {/* ─────────────────────────────────────────────────────────────────────
+          SECTION 11 — INTERACTIVE MAP LAYOUT
+          ───────────────────────────────────────────────────────────────────── */}
+      {property.mapProjectId && (
+        <section ref={mapSectionRef} className="py-16 md:py-24 bg-white border-t border-divider">
+          <Container>
+            <div className="mb-10 text-center">
+              <span className="text-xs font-extrabold uppercase tracking-widest text-amber-600 mb-2 block">
+                INTERACTIVE MASTER MAP
+              </span>
+              <h2 className="font-heading text-3xl md:text-4xl font-bold text-navy-950">
+                Explore Available Plots & Layout
+              </h2>
+            </div>
+
+            <div className="rounded-2xl border border-divider overflow-hidden shadow-lg h-[550px]">
+              <PropertyLocationMap projectId={property.mapProjectId} propertyName={property.name} />
+            </div>
+          </Container>
+        </section>
+      )}
+
+      {/* ─────────────────────────────────────────────────────────────────────
+          SECTION 12 — LEGAL & COMPLIANCE
+          ───────────────────────────────────────────────────────────────────── */}
+      <section className="py-12 bg-surface-subtle border-t border-divider text-xs text-text-muted">
+        <Container>
+          <div className="flex flex-col gap-4 max-w-4xl mx-auto">
+            <div className="flex flex-wrap items-center gap-6 text-navy-900 font-bold">
+              {property.reraNumber && <span>RERA Reg No: {property.reraNumber}</span>}
+              {property.approvalInfo && <span>Approval: {property.approvalInfo}</span>}
+            </div>
+            {property.disclaimerText && <p>{property.disclaimerText}</p>}
           </div>
         </Container>
       </section>
 
       {/* ─────────────────────────────────────────────────────────────────────
-          SITE LAYOUT / FLOOR PLANS
-          
-          This section is ONLY for the Layout button.
-          
-          Floor Plans button does NOT scroll here.
-      ───────────────────────────────────────────────────────────────────── */}
-
-      <section
-        ref={mapSectionRef}
-        id="site-layout"
-        className="border-t border-divider bg-white py-12 sm:py-14"
-      >
-        <Container size="wide">
-          <h2 className="font-heading text-2xl font-bold text-navy-900 sm:text-3xl">
-            Floor Plans &amp; Master Layout
-          </h2>
-
-          {mapUnlocked ? (
-            <>
-              <p className="mt-2 text-sm text-text-body">
-                Explore the floor plans and plot layout below —
-                click any plot for details.
-              </p>
-
-              <div className="mt-6">
-                <PropertyLocationMap
-                  key={property.mapProjectId ?? "no-map"}
-                  projectId={property.mapProjectId}
-                  propertyName={property.name}
-                  location={property.location}
-                />
-              </div>
-            </>
-          ) : (
-            <div className="mt-6 flex flex-col items-center justify-center rounded-2xl border border-dashed border-gray-300 bg-surface-subtle px-6 py-16 text-center">
-              <div className="flex h-14 w-14 items-center justify-center rounded-full bg-navy-900/5">
-                <Lock
-                  size={22}
-                  className="text-navy-900"
-                />
-              </div>
-
-              <h3 className="mt-4 font-heading text-lg font-bold text-navy-900">
-                Unlock the floor plans &amp; layout
-              </h3>
-
-              <p className="mt-2 max-w-md text-sm text-text-body">
-                Share your contact details once to view
-                the interactive floor plans and unit
-                availability for{" "}
-                {property.name}.
-              </p>
-
-              <button
-                type="button"
-                onClick={() =>
-                  handleOpenModal("map_unlock")
-                }
-                className="mt-6 cursor-pointer rounded-lg bg-gold-500 px-6 py-3 text-xs font-bold uppercase tracking-wider text-navy-950 shadow-md transition-all hover:bg-gold-400"
-              >
-                View Floor Plans
-              </button>
-            </div>
-          )}
-        </Container>
-      </section>
-
-
-      {/* ─────────────────────────────────────────────────────────────────────
-          LEAD FORM / MODALS
-      ───────────────────────────────────────────────────────────────────── */}
-
-      {modalType && (
-        <div className="fixed inset-0 z-[200] flex items-center justify-center bg-navy-950/75 p-4 backdrop-blur-sm">
-          <div className="relative w-full max-w-md rounded-2xl border border-gray-200 bg-white p-6 text-navy-900 shadow-2xl sm:p-8">
-
-            {/* CLOSE */}
-
+          MODALS
+          ───────────────────────────────────────────────────────────────────── */}
+      {modalType === "video_lightbox" && activeVideoUrl && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 p-4">
+          <div className="relative w-full max-w-4xl aspect-video bg-black rounded-2xl overflow-hidden shadow-2xl">
             <button
               type="button"
               onClick={handleCloseModal}
-              aria-label="Close modal"
-              className="absolute right-4 top-4 cursor-pointer text-gray-400 hover:text-navy-900"
+              className="absolute top-4 right-4 z-10 flex h-10 w-10 items-center justify-center rounded-full bg-black/60 text-white hover:bg-black transition-colors cursor-pointer"
+            >
+              <X size={20} />
+            </button>
+            <video src={activeVideoUrl} controls autoPlay className="h-full w-full object-contain" />
+          </div>
+        </div>
+      )}
+
+      {(modalType === "master_plan_zoom" || modalType === "floor_plan_zoom") && zoomedPlanImageUrl && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 p-4">
+          <div className="relative max-w-5xl max-h-[90vh] overflow-auto bg-white rounded-2xl p-4 shadow-2xl">
+            <button
+              type="button"
+              onClick={handleCloseModal}
+              className="absolute top-4 right-4 z-10 flex h-10 w-10 items-center justify-center rounded-full bg-navy-950 text-white hover:bg-black transition-colors cursor-pointer"
+            >
+              <X size={20} />
+            </button>
+            <Image src={zoomedPlanImageUrl} alt="Plan View" width={1600} height={1200} className="w-full h-auto object-contain" />
+          </div>
+        </div>
+      )}
+
+      {(modalType === "tour" || modalType === "brochure" || modalType === "callback") && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4">
+          <div className="relative w-full max-w-md rounded-2xl bg-white p-6 md:p-8 shadow-2xl">
+            <button
+              type="button"
+              onClick={handleCloseModal}
+              className="absolute top-4 right-4 text-text-muted hover:text-navy-950 cursor-pointer"
             >
               <X size={20} />
             </button>
 
-            {/* ───────────────────────────────────────────────────────────────
-                MAP UNLOCK MODAL
-            ─────────────────────────────────────────────────────────────── */}
-
-            {modalType === "map_unlock" ? (
-              <div>
-                <h3 className="font-heading text-xl font-bold text-navy-900">
-                  Unlock Floor Plans
-                </h3>
-
-                <p className="mt-1 text-xs text-text-muted">
-                  Enter your contact details to view the
-                  interactive floor plans for{" "}
-                  <span className="font-semibold text-navy-900">
-                    {property.name}
-                  </span>
-                  .
-                </p>
-
-                <form
-                  onSubmit={handleMapUnlockSubmit}
-                  className="mt-5 flex flex-col gap-4"
-                >
-                  {/* NAME */}
-
-                  <div>
-                    <label className="mb-1 block text-xs font-semibold text-navy-900">
-                      Full Name *
-                    </label>
-
-                    <input
-                      type="text"
-                      required
-                      placeholder="e.g. Rahul Sharma"
-                      value={formData.name}
-                      onChange={(e) =>
-                        setFormData({
-                          ...formData,
-                          name: e.target.value,
-                        })
-                      }
-                      className="w-full rounded-lg border border-gray-300 px-3.5 py-2.5 text-sm text-navy-900 focus:border-gold-500 focus:outline-none"
-                    />
-                  </div>
-
-                  {/* PHONE */}
-
-                  <div>
-                    <label className="mb-1 block text-xs font-semibold text-navy-900">
-                      Phone Number *
-                    </label>
-
-                    <input
-                      type="tel"
-                      required
-                      placeholder="+91 98765 43210"
-                      value={formData.phone}
-                      onChange={(e) =>
-                        setFormData({
-                          ...formData,
-                          phone: e.target.value,
-                        })
-                      }
-                      className="w-full rounded-lg border border-gray-300 px-3.5 py-2.5 text-sm text-navy-900 focus:border-gold-500 focus:outline-none"
-                    />
-                  </div>
-
-                  {/* EMAIL */}
-
-                  <div>
-                    <label className="mb-1 block text-xs font-semibold text-navy-900">
-                      Email Address
-                    </label>
-
-                    <input
-                      type="email"
-                      placeholder="rahul@example.com"
-                      value={formData.email}
-                      onChange={(e) =>
-                        setFormData({
-                          ...formData,
-                          email: e.target.value,
-                        })
-                      }
-                      className="w-full rounded-lg border border-gray-300 px-3.5 py-2.5 text-sm text-navy-900 focus:border-gold-500 focus:outline-none"
-                    />
-                  </div>
-
-                  {mapSubmitError && (
-                    <p className="text-xs font-medium text-red-600">
-                      {mapSubmitError}
-                    </p>
-                  )}
-
+            {submitted ? (
+              <div className="text-center py-6">
+                <CheckCircle2 size={48} className="mx-auto text-emerald-600 mb-3" />
+                <h3 className="font-heading text-2xl font-bold text-navy-950 mb-2">Thank You!</h3>
+                <p className="text-sm text-text-muted mb-6">Our property expert will contact you shortly.</p>
+                {modalType === "brochure" && property.brochureUrl && (
                   <button
-                    type="submit"
-                    disabled={mapSubmitting}
-                    className="mt-2 w-full cursor-pointer rounded-lg bg-gold-500 py-3.5 text-center text-xs font-bold uppercase tracking-wider text-navy-950 shadow-md transition-all hover:bg-gold-400 disabled:cursor-not-allowed disabled:opacity-60"
+                    type="button"
+                    onClick={handleDownloadBrochure}
+                    className="w-full rounded-xl bg-amber-500 hover:bg-amber-400 text-navy-950 py-3 text-xs font-bold transition-colors"
                   >
-                    {mapSubmitting
-                      ? "Submitting..."
-                      : "View Floor Plans"}
+                    Download Brochure Now
                   </button>
-                </form>
+                )}
               </div>
             ) : (
-              <>
-                {/* ─────────────────────────────────────────────────────────
-                    SUCCESS STATE
-                ───────────────────────────────────────────────────────── */}
+              <form onSubmit={handleGenericSubmit} className="flex flex-col gap-4">
+                <h3 className="font-heading text-xl font-bold text-navy-950">
+                  {modalType === "tour" ? "Schedule a Site Visit" : modalType === "brochure" ? "Download Brochure" : "Request Callback"}
+                </h3>
 
-                {submitted ? (
-                  <div className="py-6 text-center">
-                    <CheckCircle2
-                      size={48}
-                      className="mx-auto mb-3 text-success"
-                    />
+                <input
+                  type="text"
+                  required
+                  placeholder="Your Full Name"
+                  value={formData.name}
+                  onChange={(e) => setFormData((p) => ({ ...p, name: e.target.value }))}
+                  className="rounded-xl border border-divider px-4 py-3 text-xs font-medium focus:outline-none focus:ring-1 focus:ring-navy-900"
+                />
 
-                    <h3 className="font-heading text-xl font-bold text-navy-900">
-                      {modalType === "availability" ||
-                      modalType === "layout" ||
-                      modalType === "tour"
-                        ? "Coming Soon"
-                        : modalType === "brochure"
-                        ? "Your Brochure is Ready!"
-                        : "Request Received!"}
-                    </h3>
+                <input
+                  type="tel"
+                  required
+                  placeholder="Phone Number (+91)"
+                  value={formData.phone}
+                  onChange={(e) => setFormData((p) => ({ ...p, phone: e.target.value }))}
+                  className="rounded-xl border border-divider px-4 py-3 text-xs font-medium focus:outline-none focus:ring-1 focus:ring-navy-900"
+                />
 
-                    <p className="mt-2 text-sm text-text-body">
-                      {modalType === "availability" ||
-                      modalType === "layout" ||
-                      modalType === "tour" ? (
-                        <>
-                          Thank you for your interest in{" "}
-                          <span className="font-semibold">
-                            {property.name}
-                          </span>
-                          . Our floor plan information is
-                          currently being prepared and will be
-                          available soon.
-                        </>
-                      ) : modalType === "brochure" ? (
-                        <>
-                          Thanks for your interest in{" "}
-                          <span className="font-semibold">
-                            {property.name}
-                          </span>{" "}
-                          — click below to download the
-                          brochure.
-                        </>
-                      ) : (
-                        <>
-                          Thank you for your interest in{" "}
-                          <span className="font-semibold">
-                            {property.name}
-                          </span>
-                          . One of our Senior Consultants
-                          will get in touch with you shortly.
-                        </>
-                      )}
-                    </p>
+                <input
+                  type="email"
+                  placeholder="Email Address (optional)"
+                  value={formData.email}
+                  onChange={(e) => setFormData((p) => ({ ...p, email: e.target.value }))}
+                  className="rounded-xl border border-divider px-4 py-3 text-xs font-medium focus:outline-none focus:ring-1 focus:ring-navy-900"
+                />
 
-                    {/* DOWNLOAD AFTER SUBMISSION */}
+                {genericSubmitError && <p className="text-xs font-semibold text-red-600">{genericSubmitError}</p>}
 
-                    {modalType === "brochure" &&
-                    property.brochureUrl ? (
-                      <button
-                        type="button"
-                        onClick={handleDownloadBrochure}
-                        disabled={downloadingBrochure}
-                        className="mt-6 flex w-full cursor-pointer items-center justify-center gap-2 rounded-lg bg-gold-500 py-3.5 text-center text-xs font-bold uppercase tracking-wider text-navy-950 shadow-md transition-all hover:bg-gold-400 disabled:cursor-not-allowed disabled:opacity-60"
-                      >
-                        <Download size={15} />
-
-                        {downloadingBrochure
-                          ? "Preparing..."
-                          : "Download Brochure"}
-                      </button>
-                    ) : null}
-
-                    <button
-                      type="button"
-                      onClick={handleCloseModal}
-                      className={cn(
-                        "w-full cursor-pointer rounded-lg bg-navy-900 py-3 text-xs font-bold uppercase tracking-wider text-white hover:bg-navy-800",
-                        modalType === "brochure" &&
-                          property.brochureUrl
-                          ? "mt-3"
-                          : "mt-6"
-                      )}
-                    >
-                      Close Window
-                    </button>
-                  </div>
-                ) : (
-                  /* ─────────────────────────────────────────────────────────
-                      STANDARD MODAL
-                  ───────────────────────────────────────────────────────── */
-
-                  <div>
-                    <h3 className="font-heading text-xl font-bold text-navy-900">
-                      {modalType === "brochure" &&
-                        "Download Brochure"}
-
-                      {modalType === "layout" &&
-                        "View Master Layout"}
-
-                      {modalType === "tour" &&
-                        "Request Virtual Tour"}
-
-                      {modalType === "availability" &&
-                        "Floor Plans"}
-
-                      {modalType === "callback" &&
-                        "Request a Callback"}
-                    </h3>
-
-                    <p className="mt-1 text-xs text-text-muted">
-                      {modalType === "availability" ? (
-                        <>
-                          Enter your contact details to get
-                          information about the floor plans for{" "}
-                          <span className="font-semibold text-navy-900">
-                            {property.name}
-                          </span>
-                          .
-                        </>
-                      ) : knownContact ? (
-                        "We already have your contact details on file."
-                      ) : (
-                        <>
-                          Enter your contact details to receive
-                          instant access for{" "}
-                          <span className="font-semibold text-navy-900">
-                            {property.name}
-                          </span>
-                          .
-                        </>
-                      )}
-                    </p>
-
-                    <form
-                      onSubmit={handleGenericSubmit}
-                      className="mt-5 flex flex-col gap-4"
-                    >
-                      {knownContact ? (
-                        <p className="rounded-lg bg-surface-muted px-3.5 py-3 text-xs text-text-body">
-                          Sending as{" "}
-                          <span className="font-semibold text-navy-900">
-                            {knownContact.name}
-                          </span>
-                          , {knownContact.phone}.
-                        </p>
-                      ) : (
-                        <>
-                          {/* NAME */}
-
-                          <div>
-                            <label className="mb-1 block text-xs font-semibold text-navy-900">
-                              Full Name *
-                            </label>
-
-                            <input
-                              type="text"
-                              required
-                              placeholder="e.g. Rahul Sharma"
-                              value={formData.name}
-                              onChange={(e) =>
-                                setFormData({
-                                  ...formData,
-                                  name: e.target.value,
-                                })
-                              }
-                              className="w-full rounded-lg border border-gray-300 px-3.5 py-2.5 text-sm text-navy-900 focus:border-gold-500 focus:outline-none"
-                            />
-                          </div>
-
-                          {/* PHONE */}
-
-                          <div>
-                            <label className="mb-1 block text-xs font-semibold text-navy-900">
-                              Phone Number *
-                            </label>
-
-                            <input
-                              type="tel"
-                              required
-                              placeholder="+91 98765 43210"
-                              value={formData.phone}
-                              onChange={(e) =>
-                                setFormData({
-                                  ...formData,
-                                  phone: e.target.value,
-                                })
-                              }
-                              className="w-full rounded-lg border border-gray-300 px-3.5 py-2.5 text-sm text-navy-900 focus:border-gold-500 focus:outline-none"
-                            />
-                          </div>
-
-                          {/* EMAIL */}
-
-                          <div>
-                            <label className="mb-1 block text-xs font-semibold text-navy-900">
-                              Email Address
-                            </label>
-
-                            <input
-                              type="email"
-                              placeholder="rahul@example.com"
-                              value={formData.email}
-                              onChange={(e) =>
-                                setFormData({
-                                  ...formData,
-                                  email: e.target.value,
-                                })
-                              }
-                              className="w-full rounded-lg border border-gray-300 px-3.5 py-2.5 text-sm text-navy-900 focus:border-gold-500 focus:outline-none"
-                            />
-                          </div>
-                        </>
-                      )}
-
-                      {genericSubmitError ? (
-                        <p className="text-xs font-medium text-red-600">
-                          {genericSubmitError}
-                        </p>
-                      ) : null}
-
-                      <button
-                        type="submit"
-                        disabled={
-                          (modalType === "brochure" ||
-                            modalType === "availability") &&
-                          genericSubmitting
-                        }
-                        className="mt-2 w-full cursor-pointer rounded-lg bg-gold-500 py-3.5 text-center text-xs font-bold uppercase tracking-wider text-navy-950 shadow-md transition-all hover:bg-gold-400 disabled:cursor-not-allowed disabled:opacity-60"
-                      >
-                        {genericSubmitting
-                          ? "Submitting..."
-                          : modalType === "brochure"
-                          ? "Get Brochure"
-                          : modalType === "availability"
-                          ? "Submit Details"
-                          : "Submit Request"}
-                      </button>
-                    </form>
-                  </div>
-                )}
-              </>
+                <button
+                  type="submit"
+                  disabled={genericSubmitting}
+                  className="rounded-xl bg-navy-900 hover:bg-amber-600 text-white py-3.5 text-xs font-bold transition-colors cursor-pointer"
+                >
+                  {genericSubmitting ? "Submitting…" : "Submit"}
+                </button>
+              </form>
             )}
           </div>
         </div>

@@ -39,7 +39,34 @@ export interface CmsProperty extends CmsPropertyListItem {
   seo: CmsSeo | null;
   map_project_id: string | null;
   brochure_url: string | null;
+
+  hero_media_type?: "video" | "image" | "carousel";
+  desktop_hero_video_url?: string | null;
+  mobile_hero_video_url?: string | null;
+  desktop_hero_image_url?: string | null;
+  mobile_hero_image_url?: string | null;
+  poster_image_url?: string | null;
+  hero_heading?: string | null;
+  hero_subheading?: string | null;
+  hero_overlay_strength?: number;
+  hero_text_align?: "left" | "center" | "right";
+  hero_theme?: "dark" | "light";
+
+  master_plan?: { title: string; description?: string | null; image_url?: string | null } | null;
+  floor_plans?: any[];
+  location_landmarks?: any[];
+  video_experience?: any[];
+  highlights?: any[];
+  offers?: any[];
+  construction_updates?: any[];
+  sections?: any[];
+
+  rera_number?: string | null;
+  approval_info?: string | null;
+  disclaimer_text?: string | null;
+  possession_date?: string | null;
 }
+
 
 export interface CmsMapLayer {
   id: string;
